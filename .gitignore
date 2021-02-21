@@ -24,6 +24,7 @@ pnpm-debug.log*
 
 
 key.json
-geckodriver.log
+*.log
 imgurcreds.py
 __pycache__
+*.db
