@@ -59,7 +59,6 @@ def scrape(scrape_link):
     snapshot_id = uuid.uuid4().hex
 
     apts = []
-    links = ["https://sssb.se/soka-bostad/sok-ledigt/lediga-bostader/lagenhet/?refid=37465a7573784d44516d426f714742346152785778457869705479726c4e695a"]
     for link in links:
         print("Checking apartment link: " + link)
         try: 
