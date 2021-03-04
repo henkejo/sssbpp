@@ -25,7 +25,7 @@ scheduler = sched.scheduler(time_module.time, time_module.sleep)
 def scrape(scrape_link):
     db_connection = sqlite3.connect('sssbpp.db')
     dbc = db_connection.cursor()
-    print(str(datetime.now().strftime("%m/%d/%Y %H:%M:%S")) + " Searching for apartments...")
+    print(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " Searching for apartments...")
 
     driver.get("https://sssb.se/soka-bostad/sok-ledigt/lediga-bostader/?paginationantal=200")
 
@@ -50,7 +50,6 @@ def scrape(scrape_link):
     else:
         apt_cards = driver.find_elements_by_class_name("BoxContent")
         links = []
-        # apt_card = apt_cards[6]#                         #<- for one apt
         for apt_card in apt_cards:
             links.append(apt_card.find_element_by_css_selector(".ObjektTyp a").get_property("href"))
 
@@ -127,7 +126,7 @@ def scrape(scrape_link):
                 (snapshot_id, apt['obj-nr'], apt['type'], apt["hood"], apt["address"], apt["apt_nr"],
                 apt["avail"], apt["best-points"], apt["bookers"], apt["info-link"],
                 apt["floor-plan-link"], apt["plan-link"], apt["move-in"], apt["rent"], apt["sqm"]))
-        print(str(datetime.now().strftime("%m/%d/%Y %H:%M:%S")) + " Done.")
+        print(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " Done.")
 
     dbc.execute('''INSERT INTO snapshot
             (id,
@@ -149,11 +148,10 @@ def scrape(scrape_link):
         rows = dbc.fetchall()
         dbc.close()
 
-        prev_time = datetime.strptime(rows[0][1], '%Y-%m-%d %H:%M:%S') - timedelta(seconds=15)
-        counter = 1
-
         list(map(scheduler.cancel, scheduler.queue)) # Clearing schedule
 
+        counter = 1
+        prev_time = datetime.strptime(rows[0][1], '%Y-%m-%d %H:%M:%S') - timedelta(seconds=15)
         for row in rows:
             apt_link = row[0]
             scrape_time = datetime.strptime(row[1], '%Y-%m-%d %H:%M:%S') - timedelta(seconds=(15*counter))
@@ -170,7 +168,7 @@ def scrape(scrape_link):
 
     print("Scheduled scrapes:")
     for event in scheduler.queue:
-        print(str(datetime.fromtimestamp(event.time).strftime("%m/%d/%Y %H:%M:%S")) + "- Link: " + str(event.argument))
+        print(str(datetime.fromtimestamp(event.time).strftime("%Y-%m-%d %H:%M:%S")) + " - Link: " + str(event.argument))
     scheduler.run()
 
 scrape(None)
