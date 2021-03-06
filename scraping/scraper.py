@@ -162,7 +162,7 @@ def scrape(scrape_link):
             counter += 1
 
         next_full_scrape = datetime.now() + timedelta(minutes=(AUTO_SCHEDULE_INTERVAL_MINUTES + randrange(15)), seconds=randrange(30))
-        scheduler.enterabs(time=next_full_scrape.timestamp(), priority=counter, action=scrape, argument=None)
+        scheduler.enterabs(time=next_full_scrape.timestamp(), priority=counter, action=scrape)
         print("Done!")
 
     print("Scheduled scrapes:")
