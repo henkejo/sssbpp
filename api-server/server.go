@@ -10,11 +10,17 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/rs/cors"
 )
 
 var db *sqlx.DB
 
 func main() {
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},   // All origins
+		AllowedMethods: []string{"GET"}, // Allowing only get, just an example
+	})
+
 	router := mux.NewRouter()
 
 	router.HandleFunc("/apts", allCurrentApts)
@@ -26,7 +32,7 @@ func main() {
 	db = d
 
 	println("Server started!")
-	http.ListenAndServe(":5000", router)
+	http.ListenAndServe(":5000", c.Handler(router))
 }
 
 type apartment struct {

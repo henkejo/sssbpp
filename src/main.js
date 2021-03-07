@@ -5,13 +5,14 @@ import router from './router'
 import Buefy from 'buefy'
 import 'buefy/dist/buefy.css'
 import store from './store'
-import { firestorePlugin } from 'vuefire'
-
-Vue.use(firestorePlugin)
+import axios from 'axios'
+import VueAxios from 'vue-axios'
 
 Vue.use(Buefy)
 
 Vue.use(VueRouter)
+
+Vue.use(VueAxios, axios)
 
 Vue.config.productionTip = false
 

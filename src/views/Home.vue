@@ -9,7 +9,6 @@
 </template>
 
 <script>
-import { db } from '../db'
 let apartments = [];
 
 export default {
@@ -21,13 +20,9 @@ export default {
   },
   methods: {
     loadApts() {
-      db.collection('apts').get().then(querySnapshot => {
-          querySnapshot.docs.map(doc => {
-            let apt = doc.data();
-            apt.id = doc.id;
-            apartments.push(apt)
-          });
-      })
+      this.axios.get("http://localhost:5000/apts").then((response) => {
+        console.log(response.data)
+      });
     }
   },
   beforeDestroy() {
