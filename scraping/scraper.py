@@ -22,7 +22,7 @@ driver = webdriver.Firefox(options=options, executable_path=DRIVER_PATH)
 
 scheduler = sched.scheduler(time_module.time, time_module.sleep)
 
-def scrape(scrape_link):
+def scrape(scrape_link=None):
     db_connection = sqlite3.connect('sssbpp.db')
     dbc = db_connection.cursor()
     print(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " Searching for apartments...")
