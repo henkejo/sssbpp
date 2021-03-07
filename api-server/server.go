@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -29,28 +30,28 @@ func main() {
 }
 
 type apartment struct {
-	ObjNr          string    `db:"obj_nr"`
-	Hood           string    `db:"hood"`
-	AptType        string    `db:"type"`
-	Address        string    `db:"address"`
-	AptNr          string    `db:"apt_nr"`
-	AvailableUntil time.Time `db:"available_until"`
-	BestPoints     int       `db:"best_points"`
-	Bookers        int       `db:"bookers"`
-	InfoLink       string    `db:"info_link"`
-	FloorPlanLink  string    `db:"floor_plan_link"`
-	PlanLink       string    `db:"plan_link"`
-	MoveIn         time.Time `db:"move_in"`
-	Rent           int       `db:"rent"`
-	Sqm            int       `db:"sqm"`
-	Special        string    `db:"special"`
+	ObjNr          string         `db:"obj_nr"`
+	Hood           string         `db:"hood"`
+	AptType        string         `db:"type"`
+	Address        string         `db:"address"`
+	AptNr          string         `db:"apt_nr"`
+	AvailableUntil time.Time      `db:"available_until"`
+	BestPoints     int            `db:"best_points"`
+	Bookers        int            `db:"bookers"`
+	InfoLink       string         `db:"info_link"`
+	FloorPlanLink  string         `db:"floor_plan_link"`
+	PlanLink       string         `db:"plan_link"`
+	MoveIn         time.Time      `db:"move_in"`
+	Rent           int            `db:"rent"`
+	Sqm            int            `db:"sqm"`
+	Special        sql.NullString `db:"special"`
 }
 
 func allCurrentApts(w http.ResponseWriter, r *http.Request) {
 	apts := []apartment{}
 	err := db.Select(&apts, `
 		SELECT obj_nr, type, hood, address, apt_nr,
-		available_until, best_points, bookers, info_link       
+		available_until, best_points, bookers, info_link,       
 		floor_plan_link, plan_link, move_in, rent, sqm, special
 		FROM latest_snapshot
 	`)
