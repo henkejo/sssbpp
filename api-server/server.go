@@ -1,9 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
@@ -37,12 +37,8 @@ func allCurrentApts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var sb strings.Builder
-	sb.Grow(32)
-	for _, apt := range apts {
-		sb.Write([]byte(fmt.Sprintf("%s, %s, %s\n", apt.ObjNr, apt.Hood, apt.AptType)))
-	}
-	w.Write([]byte(sb.String()))
+	b, _ := json.MarshalIndent(apts, "", "    ")
+	w.Write(b)
 }
 
 func dbConn() *sqlx.DB {
