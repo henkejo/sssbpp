@@ -7,12 +7,16 @@ import 'buefy/dist/buefy.css'
 import store from './store'
 import axios from 'axios'
 import VueAxios from 'vue-axios'
+import VueLodash from 'vue-lodash'
+import lodash from 'lodash'
 
 Vue.use(Buefy)
 
 Vue.use(VueRouter)
 
 Vue.use(VueAxios, axios)
+
+Vue.use(VueLodash, { name: 'custom' , lodash: lodash })
 
 Vue.config.productionTip = false
 

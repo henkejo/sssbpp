@@ -20,7 +20,7 @@ export default {
     loadApts() {
       if (this.apartments.length === 0) {
         this.axios.get("http://localhost:5000/apts").then((response) => {
-          this.apartments = response.data;
+          this.apartments = this._.groupBy(response.data, 'Hood');
           console.log(this.apartments);
         }); 
       }
