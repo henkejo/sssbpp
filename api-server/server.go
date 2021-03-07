@@ -16,7 +16,7 @@ var db *sqlx.DB
 func main() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/currentApts", allCurrentApts)
+	router.HandleFunc("/apts", allCurrentApts)
 
 	d, err := sqlx.Connect("sqlite3", "../scraping/sssbpp.db")
 	if err != nil {
