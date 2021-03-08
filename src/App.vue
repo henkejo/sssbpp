@@ -1,23 +1,19 @@
 <template>
   <div id="app" class="container is-max-desktop">
-    <b-navbar :shadow="true" :spaced="true">
+    <b-navbar :shadow="true" :spaced="true" :mobile-burger="false">
       <template #brand>
+          <b-navbar-item tag="router-link" :to="{ path: '/' }">
+                <img
+                    src="assets/logo.png"
+                    alt="Lightweight UI components for Vue.js based on Bulma"
+                >
+          </b-navbar-item>
           <b-navbar-item tag="router-link" :to="{ path: '/' }">
               Lediga lägenheter
           </b-navbar-item>
           <b-navbar-item tag="router-link" :to="{ path: '/about' }">
               Statistik
           </b-navbar-item>
-      </template>
-      <template #end>
-          <b-navbar-dropdown label="Info">
-              <b-navbar-item href="#">
-                  Om
-              </b-navbar-item>
-              <b-navbar-item href="#">
-                  Rapportera en bugg
-              </b-navbar-item>
-          </b-navbar-dropdown>
       </template>
     </b-navbar>
     <router-view/>
