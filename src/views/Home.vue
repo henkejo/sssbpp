@@ -6,7 +6,8 @@
         <div class="column is-half-mobile is-one-third-tablet is-one-third-desktop" v-for="apt in hood" v-bind:key="apt.ObjNr">
           <b-collapse aria-id="contentIdForA11y2" class="panel" animation="slide" :open="false">
             <template #trigger>
-                <div class="panel-heading is-size-7 is-size-6-desktop" role="button" aria-controls="contentIdForA11y2">
+                <div class="panel-heading is-size-7 is-size-6-desktop" role="button" aria-controls="contentIdForA11y2"
+                v-bind:class="{ 'has-background-info-light  ': !apt.AptType.includes('kök'), 'has-background-warning-light': apt.AptType.includes('korridor') }">
                     <div class="columns is-mobile">
                       <div class="column has-text-left">
                         <strong>{{ apt.Address }}</strong><br>
@@ -15,7 +16,7 @@
                       <div class="column has-text-right is-one-third is-size-8">
                         <strong>{{ apt.Rent + " kr"}}</strong><br>
                         <strong>{{ apt.Sqm + " kvm"}}</strong>
-                      </div>
+                      </div>  
                     </div>
                 </div>
             </template>
@@ -45,7 +46,7 @@ export default {
         this.axios.get("http://localhost:5000/apts").then((response) => {
           this.apartments = this._.groupBy(response.data, 'Hood');
           console.log(this.apartments);
-        }); 
+        });
       }
     }
   }
