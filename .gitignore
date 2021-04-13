@@ -28,3 +28,4 @@ key.json
 imgurcreds.py
 __pycache__
 *.db
+*.key
