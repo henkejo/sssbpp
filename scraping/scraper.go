@@ -4,10 +4,16 @@ import (
 	"database/sql"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"golang.org/x/net/html"
 )
+
+type node struct {
+	nodeType string
+	data     string
+}
 
 type apartment struct {
 	ObjNr          string         `db:"obj_nr"`
@@ -19,8 +25,6 @@ type apartment struct {
 	BestPoints     int            `db:"best_points"`
 	Bookers        int            `db:"bookers"`
 	InfoLink       string         `db:"info_link"`
-	FloorPlanLink  string         `db:"floor_plan_link"`
-	PlanLink       string         `db:"plan_link"`
 	MoveIn         time.Time      `db:"move_in"`
 	Rent           int            `db:"rent"`
 	Sqm            int            `db:"sqm"`
@@ -39,7 +43,7 @@ func fullScrape() {
 
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		println("Could pase HTML from: " + aptsListLink)
+		println("Could not parse HTML from: " + aptsListLink)
 		return
 	}
 
@@ -64,6 +68,34 @@ func fullScrape() {
 	f(doc)
 }
 
+func handleAptProps(c chan node) {
+	var apt apartment
+	for node := range c {
+		nodeType := node.nodeType[2 : len(node.nodeType)-2]
+		switch nodeType {
+		case "ObjektNummer":
+			apt.ObjNr = node.data
+		case "ObjektOmrade":
+			apt.Hood = node.data
+		case "ObjektAdress":
+			matches := regexp.MustCompile(`(.*)( / )(.*)`).FindStringSubmatch(node.data)
+			apt.Address = matches[1]
+			apt.AptNr = matches[3]
+		case "ObjektTyp":
+			apt.AptType = node.data
+		case "ObjektYta":
+			apt.Sqm, _ = strconv.Atoi(regexp.MustCompile(`(.*) m`).FindString(node.data))
+		case "ObjektHyra":
+			apt.Rent, _ = strconv.Atoi(regexp.MustCompile(`(.*) kr`).FindString(node.data))
+		case "ObjektInflytt":
+			apt.MoveIn, _ = time.Parse("2006-01-02", node.data)
+		case "IntresseMeddelande":
+			//matches := regexp.MustCompile(`(till )(.*)( klockan )(.*)(\. )`).FindStringSubmatch(node.data)
+			print("test")
+		}
+	}
+}
+
 func singleScrape(refID string) {
 	aptLink := "https://sssb.se/widgets/?widgets%5B%5D=objektinformation%40lagenheter&widgets%5B%5D=objektdokument&widgets%5B%5D=objektintressestatus&widgets%5B%5D=objektintresse&callback=a&refid=" + refID
 
@@ -76,15 +108,24 @@ func singleScrape(refID string) {
 
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		println("Could pase HTML from: " + aptLink)
+		println("Could not parse HTML from: " + aptLink)
 		return
 	}
 
+	aptc := make(chan node)
+	go handleAptProps(aptc)
 	var f func(*html.Node)
 	f = func(n *html.Node) {
-		if n.Type == html.ElementNode && (n.Data == "dt" || n.Data == "dd") {
+		isKeyNodeType := (n.Data == "dd" || n.Data == "div")
+		if n.Type == html.ElementNode && isKeyNodeType {
 			for _, a := range n.Attr {
 				if a.Key == "class" {
+					innerText := n.FirstChild.Data
+					if a.Val == "\\\"ObjektOmrade\\\"" {
+						innerText = n.FirstChild.NextSibling.FirstChild.Data
+					}
+					prop := node{a.Val, innerText}
+					aptc <- prop
 					break
 				}
 			}
@@ -94,8 +135,9 @@ func singleScrape(refID string) {
 		}
 	}
 	f(doc)
+	close(aptc)
 }
 
 func main() {
-	singleScrape("366770596d4e456d53794b38477a64794857612f5777426d4458633045414750")
+	singleScrape("6650597833474661663569595062696941686b63473446473730334e742b6445")
 }
