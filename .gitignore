@@ -29,3 +29,4 @@ imgurcreds.py
 __pycache__
 *.db
 *.key
+.vscode

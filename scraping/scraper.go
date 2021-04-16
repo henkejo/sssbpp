@@ -1,17 +1,26 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"io"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/buger/jsonparser"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"golang.org/x/net/html"
+)
+
+var (
+	ctx context.Context
+	db  *sql.DB
 )
 
 type apartment struct {
@@ -68,12 +77,11 @@ func fullScrape() {
 
 }
 
-func singleScrape(refID string) (apartment, error) {
+func singleScrape(refID string, dbconn *sqlx.DB) {
 	_, err := getApt(refID)
 	if err != nil {
 		println(err.Error())
 	}
-
 }
 
 func getApt(refID string) (apartment, error) {
@@ -161,5 +169,17 @@ func getApt(refID string) (apartment, error) {
 }
 
 func main() {
-	singleScrape("6650597833474661663569595062696941686b63473446473730334e742b6445")
+	if len(os.Args) < 3 {
+		println("Please provide db password and host as command line arguments.")
+		return
+	}
+	dbPassword := os.Args[1]
+	dbHost := os.Args[2]
+
+	_, err := sqlx.Connect("postgres", "host="+dbHost+" user=collector password="+dbPassword+" dbname=sssbpp sslmode=disable")
+	if err != nil {
+		println("Could not connect to database: " + err.Error())
+		return
+	}
+	//singleScrape("6650597833474661663569595062696941686b63473446473730334e742b6445", db)
 }
