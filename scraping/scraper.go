@@ -2,18 +2,17 @@ package main
 
 import (
 	"database/sql"
+	"errors"
+	"io"
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/buger/jsonparser"
 	"golang.org/x/net/html"
 )
-
-type node struct {
-	nodeType string
-	data     string
-}
 
 type apartment struct {
 	ObjNr          string         `db:"obj_nr"`
@@ -66,76 +65,99 @@ func fullScrape() {
 		}
 	}
 	f(doc)
+
 }
 
-func handleAptProps(c chan node) {
-	var apt apartment
-	for node := range c {
-		nodeType := node.nodeType[2 : len(node.nodeType)-2]
-		switch nodeType {
-		case "ObjektNummer":
-			apt.ObjNr = node.data
-		case "ObjektOmrade":
-			apt.Hood = node.data
-		case "ObjektAdress":
-			matches := regexp.MustCompile(`(.*)( / )(.*)`).FindStringSubmatch(node.data)
-			apt.Address = matches[1]
-			apt.AptNr = matches[3]
-		case "ObjektTyp":
-			apt.AptType = node.data
-		case "ObjektYta":
-			apt.Sqm, _ = strconv.Atoi(regexp.MustCompile(`(.*) m`).FindString(node.data))
-		case "ObjektHyra":
-			apt.Rent, _ = strconv.Atoi(regexp.MustCompile(`(.*) kr`).FindString(node.data))
-		case "ObjektInflytt":
-			apt.MoveIn, _ = time.Parse("2006-01-02", node.data)
-		case "IntresseMeddelande":
-			//matches := regexp.MustCompile(`(till )(.*)( klockan )(.*)(\. )`).FindStringSubmatch(node.data)
-			print("test")
-		}
+func singleScrape(refID string) (apartment, error) {
+	_, err := getApt(refID)
+	if err != nil {
+		println(err.Error())
 	}
+
 }
 
-func singleScrape(refID string) {
+func getApt(refID string) (apartment, error) {
 	aptLink := "https://sssb.se/widgets/?widgets%5B%5D=objektinformation%40lagenheter&widgets%5B%5D=objektdokument&widgets%5B%5D=objektintressestatus&widgets%5B%5D=objektintresse&callback=a&refid=" + refID
 
 	resp, err := http.Get(aptLink)
 	if err != nil {
 		println("Could not get " + aptLink)
-		return
+		return apartment{}, errors.New("get-error-" + refID)
 	}
-	defer resp.Body.Close()
-
-	doc, err := html.Parse(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
 	if err != nil {
-		println("Could not parse HTML from: " + aptLink)
-		return
+		println("Could not read " + aptLink)
+		return apartment{}, errors.New("read-error-" + refID)
 	}
 
-	aptc := make(chan node)
-	go handleAptProps(aptc)
-	var f func(*html.Node)
-	f = func(n *html.Node) {
-		isKeyNodeType := (n.Data == "dd" || n.Data == "div")
-		if n.Type == html.ElementNode && isKeyNodeType {
-			for _, a := range n.Attr {
-				if a.Key == "class" {
-					innerText := n.FirstChild.Data
-					if a.Val == "\\\"ObjektOmrade\\\"" {
-						innerText = n.FirstChild.NextSibling.FirstChild.Data
-					}
-					prop := node{a.Val, innerText}
-					aptc <- prop
-					break
-				}
+	paths := [][]string{
+		{"data", "objektinformation@lagenheter", "objektNr"},
+		{"data", "objektinformation@lagenheter", "adress"},
+		{"data", "objektinformation@lagenheter", "omrade"},
+		{"data", "objektinformation@lagenheter", "hyra"},
+		{"data", "objektinformation@lagenheter", "typ"},
+		{"data", "objektinformation@lagenheter", "yta"},
+		{"data", "objektinformation@lagenheter", "inflyttningDatum"},
+		{"data", "objektinformation@lagenheter", "detaljUrl"},
+		{"data", "objektinformation@lagenheter", "antalIntresse"},
+		{"html", "objektintresse"},
+	}
+	var apt apartment
+	jsonparser.EachKey(respBody, func(idx int, value []byte, vt jsonparser.ValueType, err error) {
+		switch idx {
+		case 0: // objektNr
+			apt.ObjNr = string(value)
+		case 1: // adress
+			regx, err := regexp.Compile(`(.*)( / )(.*)`)
+			matches := regx.FindStringSubmatch(string(value))
+			if err != nil {
+				println("No address info will be saved. Error: " + err.Error())
+			} else {
+				apt.Address = matches[1]
+				apt.AptNr = matches[3]
+			}
+		case 2: // omrade
+			apt.Hood = string(value)
+		case 3: // hyra
+			rentstring := strings.ReplaceAll(string(value), " ", "")
+			apt.Rent, err = strconv.Atoi(rentstring)
+			if err != nil {
+				println("No rent info will be saved. Error: " + err.Error())
+			}
+		case 4: // typ
+			apt.AptType = string(value)
+		case 5: // yta
+			rent64, err := jsonparser.ParseInt(value)
+			if err != nil {
+				println("No sqm info will be saved. Error: " + err.Error())
+			} else {
+				apt.Sqm = int(rent64)
+			}
+		case 6: // inflyttningDatum
+			apt.MoveIn, _ = time.Parse("2006-01-02", string(value))
+		case 7: // detaljUrl
+			apt.AptType = string(value)
+		case 8: // antalIntresse
+			regx, err := regexp.Compile(`([0-9]+)( )\(([0-9]+)st`)
+			if err != nil {
+				println("No interest info will be saved. Probably no bookers. Error: " + err.Error())
+			} else {
+				matches := regx.FindStringSubmatch(string(value))
+				apt.BestPoints, _ = strconv.Atoi(matches[1])
+				apt.Bookers, _ = strconv.Atoi(matches[3])
+			}
+		case 9: // objektintresse (listing ending)
+			regx, err := regexp.Compile(`(till )([0-9]+-[0-9]+-[0-9]+)( klockan )([0-9]+:[0-9]+)(\. )`)
+			if err != nil {
+				println("No listing ending info will be saved. Probably no bookers. Error: " + err.Error())
+			} else {
+				matches := regx.FindStringSubmatch(string(value))
+				apt.AvailableUntil, _ = time.Parse("2006-01-2T15:04", matches[2]+"T"+matches[4])
 			}
 		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			f(c)
-		}
-	}
-	f(doc)
-	close(aptc)
+	}, paths...)
+	return apt, nil
 }
 
 func main() {
