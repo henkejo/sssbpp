@@ -248,7 +248,7 @@ func main() {
 
 	scheduler := gocron.NewScheduler(t)
 
-	//fullScrape(dbmap)
+	log.Println("First full scrape at approx: " + string(time.Now().Add(time.Hour*3).Format("01-02-2006 15:04:05")))
 	scheduler.Every(3).Hours().Do(func() {
 		fullScrape(dbmap)
 	})
