@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"io"
@@ -13,17 +12,13 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
-	"github.com/jmoiron/sqlx"
+	"github.com/go-gorp/gorp"
 	_ "github.com/lib/pq"
 	"golang.org/x/net/html"
 )
 
-var (
-	ctx context.Context
-	db  *sql.DB
-)
-
 type apartment struct {
+	TimeStamp      time.Time      `db:"timestamp"`
 	ObjNr          string         `db:"obj_nr"`
 	Hood           string         `db:"hood"`
 	AptType        string         `db:"type"`
@@ -77,10 +72,14 @@ func fullScrape() {
 
 }
 
-func singleScrape(refID string, dbconn *sqlx.DB) {
-	_, err := getApt(refID)
+func singleScrape(refID string, dbmap *gorp.DbMap) {
+	apt, err := getApt(refID)
 	if err != nil {
 		println(err.Error())
+	} else {
+		if dbmap.Insert(&apt) != nil {
+			println("Could not insert apt into db")
+		}
 	}
 }
 
@@ -165,6 +164,7 @@ func getApt(refID string) (apartment, error) {
 			}
 		}
 	}, paths...)
+	apt.TimeStamp = time.Now()
 	return apt, nil
 }
 
@@ -176,10 +176,22 @@ func main() {
 	dbPassword := os.Args[1]
 	dbHost := os.Args[2]
 
-	_, err := sqlx.Connect("postgres", "host="+dbHost+" user=collector password="+dbPassword+" dbname=sssbpp sslmode=disable")
+	db, err := sql.Open("postgres", "host="+dbHost+" user=collector password="+dbPassword+" dbname=sssbpp sslmode=disable")
 	if err != nil {
 		println("Could not connect to database: " + err.Error())
 		return
 	}
-	//singleScrape("6650597833474661663569595062696941686b63473446473730334e742b6445", db)
+
+	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
+	tblmap := dbmap.AddTableWithName(apartment{}, "apartment")
+	tblmap.SetKeys(false, "timestamp", "obj_nr")
+
+	if dbmap.CreateTablesIfNotExists() != nil {
+		println("Could not create table: " + err.Error())
+		return
+	}
+
+	defer dbmap.Db.Close()
+
+	singleScrape("6650597833474661663569595062696941686b63473446473730334e742b6445", dbmap)
 }
