@@ -17,7 +17,7 @@ This project was made to harvest data from the SSSB website in order to gain mor
 The program periodically (a few hours apart) downloads a list of all apartments for rent and their details regarding queue times. When a listing only has a couple of seconds until it closes, the program downloads the details for that listing once again, in order to see how many queue points were needed for that particular listing.
 
 ## Building and running
-You'll need an accessible PostgreSQL server running with a database called "*sssbpp*", and a user called "*collector*".
+You'll need an accessible PostgreSQL server running with a database called "*sssbpp*", and a user called "*collector*". The database needs 2 tables and 2 views. The table structures can be seen at the top of the `scraper.go` program, and the views can be generated using the 2 `.sql`-files in the scraping directory.
 
 You'll also need to have Go installed (go1.16.3) in order to build.
 
