@@ -30,3 +30,4 @@ __pycache__
 *.db
 *.key
 .vscode
+scraping/sssbpp-scraper
