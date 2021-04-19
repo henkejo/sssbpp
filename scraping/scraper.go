@@ -244,14 +244,15 @@ func main() {
 
 	defer dbmap.Db.Close()
 
-	t, _ := time.LoadLocation("Europe/Stockholm")
-
+	t, err := time.LoadLocation("Europe/Stockholm")
+	if err != nil {
+		log.Panicln(err.Error())
+	}
 	scheduler := gocron.NewScheduler(t)
 
-	log.Println("First full scrape at approx: " + string(time.Now().Add(time.Hour*3).Format("01-02-2006 15:04:05")))
+	fullScrape(dbmap)
 	scheduler.Every(3).Hours().Do(fullScrape, dbmap)
 
 	scheduleNextFinalScrape(dbmap, scheduler)
-
-	select {} // Blocks and waits for scheduler events.
+	scheduler.StartBlocking()
 }
