@@ -43,6 +43,12 @@ type apartment struct {
 	Special        string    `db:"special"`
 }
 
+var (
+	scheduler        *gocron.Scheduler
+	dbmap            *gorp.DbMap
+	finalScrapeTimer *time.Timer
+)
+
 func fullScrape(dbmap *gorp.DbMap) {
 	log.Println("Starting full scrape...")
 	aptsListLink := "https://sssb.se/widgets/?callback=a&widgets%5B%5D=objektlista%40lagenheter"
@@ -86,14 +92,15 @@ func fullScrape(dbmap *gorp.DbMap) {
 		return
 	} else {
 		for _, refID := range aptRefIDs {
-			singleScrape(refID, dbmap, true, snap.Id)
+			singleScrape(refID, true, snap.Id)
 		}
 	}
-	log.Println("Full scrape complete! 👍")
+	scheduleNextFinalScrape()
+	log.Println("Full scrape complete!")
 	log.Println("Next full scrape at approx: " + string(time.Now().Add(time.Hour*3).Format("01-02-2006 15:04:05")))
 }
 
-func singleScrape(refID string, dbmap *gorp.DbMap, partOfFullScrape bool, snapID int) {
+func singleScrape(refID string, partOfFullScrape bool, snapID int) {
 	apt, err := getApt(refID)
 	apt.RefID = refID
 	if partOfFullScrape {
@@ -202,25 +209,36 @@ func getApt(refID string) (apartment, error) {
 	return apt, nil
 }
 
-func scheduleNextFinalScrape(dbmap *gorp.DbMap, scheduler *gocron.Scheduler) {
+func scheduleNextFinalScrape() {
 	var aptsToCheck []apartment
 	_, err := dbmap.Select(&aptsToCheck, "SELECT * FROM closing_soon")
 	if err != nil {
 		log.Panicln("Couldn't find next final scrape. Quitting. " + err.Error())
 	}
 	nextFinalScrapeTime := aptsToCheck[0].AvailableUntil.Add(-time.Second * 2)
-	scheduler.At(nextFinalScrapeTime).Do(finalScrapeAndSched, aptsToCheck, dbmap, scheduler)
+	if finalScrapeTimer != nil {
+		finalScrapeTimer.Stop()
+	}
+	finalScrapeTimer = time.AfterFunc(nextFinalScrapeTime.Sub(time.Now().Local()), func() { finalScrapeAndSched(aptsToCheck) })
 	log.Println("Next final scrape at approx: " + nextFinalScrapeTime.Format("01-02-2006 15:04:05"))
 }
 
-func finalScrapeAndSched(aptsToCheck []apartment, dbmap *gorp.DbMap, scheduler *gocron.Scheduler) {
+func finalScrapeAndSched(aptsToCheck []apartment) {
 	for _, apt := range aptsToCheck {
-		singleScrape(apt.RefID, dbmap, false, 0)
+		singleScrape(apt.RefID, false, 0)
 	}
-	scheduleNextFinalScrape(dbmap, scheduler)
+	scheduleNextFinalScrape()
 }
 
 func main() {
+	log.Println("Started!")
+	f, err := os.OpenFile("sssbpp-scraper-log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Panicf("error opening file: %v", err)
+	}
+	defer f.Close()
+	log.SetOutput(f)
+
 	if len(os.Args) < 3 {
 		log.Panicln("Please provide db password and host URL as command line arguments.")
 	}
@@ -232,7 +250,7 @@ func main() {
 		log.Panicln("Could not connect to database: " + err.Error())
 	}
 
-	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
+	dbmap = &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
 	apttblmap := dbmap.AddTableWithName(apartment{}, "apartment")
 	apttblmap.SetKeys(false, "snapshot", "obj_nr")
 	snptblmap := dbmap.AddTableWithName(snapshot{}, "snapshot")
@@ -248,11 +266,7 @@ func main() {
 	if err != nil {
 		log.Panicln(err.Error())
 	}
-	scheduler := gocron.NewScheduler(t)
-
-	fullScrape(dbmap)
+	scheduler = gocron.NewScheduler(t)
 	scheduler.Every(3).Hours().Do(fullScrape, dbmap)
-
-	scheduleNextFinalScrape(dbmap, scheduler)
 	scheduler.StartBlocking()
 }
