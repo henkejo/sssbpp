@@ -44,9 +44,10 @@ type apartment struct {
 }
 
 var (
-	scheduler        *gocron.Scheduler
-	dbmap            *gorp.DbMap
-	finalScrapeTimer *time.Timer
+	scheduler         *gocron.Scheduler
+	dbmap             *gorp.DbMap
+	finalScrapeTimer  *time.Timer
+	aptsToFinalScrape []apartment
 )
 
 func fullScrape(dbmap *gorp.DbMap) {
@@ -108,6 +109,7 @@ func singleScrape(refID string, partOfFullScrape bool, snapID int) {
 	} else {
 		snap := snapshot{Timestamp: time.Now(), FullScrape: false}
 		dbmap.Insert(&snap)
+		apt.Snapshot = snap.Id
 	}
 
 	if err != nil {
@@ -210,21 +212,20 @@ func getApt(refID string) (apartment, error) {
 }
 
 func scheduleNextFinalScrape() {
-	var aptsToCheck []apartment
-	_, err := dbmap.Select(&aptsToCheck, "SELECT * FROM closing_soon")
+	_, err := dbmap.Select(&aptsToFinalScrape, "SELECT * FROM closing_soon")
 	if err != nil {
 		log.Panicln("Couldn't find next final scrape. Quitting. " + err.Error())
 	}
-	nextFinalScrapeTime := aptsToCheck[0].AvailableUntil.Add(-time.Second * 2)
+	nextFinalScrapeTime := aptsToFinalScrape[0].AvailableUntil.Add(-time.Second * 2)
 	if finalScrapeTimer != nil {
 		finalScrapeTimer.Stop()
 	}
-	finalScrapeTimer = time.AfterFunc(nextFinalScrapeTime.Sub(time.Now().Local()), func() { finalScrapeAndSched(aptsToCheck) })
+	finalScrapeTimer = time.AfterFunc(nextFinalScrapeTime.Sub(time.Now().Local()), func() { finalScrapeAndSched() })
 	log.Println("Next final scrape at approx: " + nextFinalScrapeTime.Format("01-02-2006 15:04:05"))
 }
 
-func finalScrapeAndSched(aptsToCheck []apartment) {
-	for _, apt := range aptsToCheck {
+func finalScrapeAndSched() {
+	for _, apt := range aptsToFinalScrape {
 		singleScrape(apt.RefID, false, 0)
 	}
 	scheduleNextFinalScrape()
