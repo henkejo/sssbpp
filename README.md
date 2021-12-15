@@ -4,4 +4,4 @@ A program used for harvesting public data regarding queue times for the largest 
 
 Built as a hobby project and learning experience.
 First versions were made with Go and BigQuery to gain some experience before an internship.
-Currently pivoting the project (writing the program in python) with the goal to make investigative article sometime in the future.
+Currently pivoting the project (writing the program in Python) with the goal to make an investigative article sometime in the future.
