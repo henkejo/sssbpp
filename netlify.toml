@@ -1,0 +1,10 @@
+[build]
+  command = "pnpm install && pnpm build"
+  publish = ".next"
+
+[build.environment]
+  PLAYWRIGHT_BROWSERS_PATH = "0"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
