@@ -10,6 +10,7 @@ export default function Home() {
           <div className="p-4 border rounded-lg">
             <h2 className="font-semibold mb-2">API Endpoints:</h2>
             <ul className="list-disc list-inside space-y-1 text-sm">
+              <li><code className="bg-gray-100 px-2 py-1 rounded">GET /api/scrape/list</code> - Get list of all apartment refIds</li>
               <li><code className="bg-gray-100 px-2 py-1 rounded">POST /api/scrape/full</code> - Full scrape of all apartments</li>
               <li><code className="bg-gray-100 px-2 py-1 rounded">GET /api/scrape/apartment/[refId]</code> - Scrape single apartment</li>
             </ul>

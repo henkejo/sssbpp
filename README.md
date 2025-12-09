@@ -54,6 +54,19 @@ pnpm start
 
 ## API Endpoints
 
+### GET `/api/scrape/list`
+Returns a list of all available apartment reference IDs (refIds) without scraping full details. This is faster than the full scrape endpoint.
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 42,
+  "refIds": ["refId1", "refId2", ...],
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
+
 ### POST `/api/scrape/full`
 Scrapes all available apartments from SSSB.
 
