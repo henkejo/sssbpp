@@ -206,11 +206,18 @@ export async function getApartment(refId: string): Promise<Apartment> {
   }
 }
 
-export async function scrapeAllApartments(): Promise<Apartment[]> {
+export async function scrapeAllApartments(offset?: number, limit?: number): Promise<Apartment[]> {
+  console.log('Scraping apartment list...');
   const refIds = await getApartmentList();
-  const apartments: Apartment[] = [];
+  console.log(`Found ${refIds.length} apartments`);
 
-  for (const refId of refIds) {
+  const start = offset ?? 0;
+  const end = limit !== undefined ? start + limit : undefined;
+  const refIdsToScrape = refIds.slice(start, end);
+
+  const apartments: Apartment[] = [];
+  for (const refId of refIdsToScrape) {
+    console.log(`Scraping apartment ${refId}...`);
     try {
       const apt = await getApartment(refId);
       apartments.push(apt);
