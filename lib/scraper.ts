@@ -1,4 +1,5 @@
 import { chromium, type Browser, type Page } from 'playwright';
+import { fromZonedTime } from 'date-fns-tz';
 
 export interface Apartment {
   objNr: string;
@@ -15,6 +16,13 @@ export interface Apartment {
   rent: number;
   sqm: number;
   special: string;
+}
+
+function stockholmTimeToUTC(dateStr: string, timeStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const stockholmDate = new Date(year, month - 1, day, hours, minutes);
+  return fromZonedTime(stockholmDate, 'Europe/Stockholm');
 }
 
 let browser: Browser | null = null;
@@ -191,8 +199,7 @@ export async function getApartment(refId: string): Promise<Apartment> {
 
     const availableMatch = allText.match(/till\s+(\d{4}-\d{2}-\d{2})\s+klockan\s+(\d{2}:\d{2})/i);
     if (availableMatch) {
-      const dateStr = `${availableMatch[1]}T${availableMatch[2]}`;
-      apt.availableUntil = new Date(dateStr);
+      apt.availableUntil = stockholmTimeToUTC(availableMatch[1], availableMatch[2]);
     }
 
     const hoodMatch = allText.match(/omr[åa]de[:\s]*([^\n,]+)/i);
