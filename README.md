@@ -1,8 +1,9 @@
 # SSSB++ 
-## What's this? 
-A program used for harvesting data regarding queue times for the largest student accommodation service in Stockholm, *SSSB*. 🏢
 
-Built as a hobby project and learning experience in Go and Google Cloud (PostgreSQL, BigQuery).
+## What's this? 
+A Next.js API application for scraping data regarding queue times for the largest student accommodation service in Stockholm, *SSSB*. 🏢
+
+Built as a hobby project and learning experience in Next.js, TypeScript, and Netlify.
 
 ## Background
 Finding an apartment in Stockholm on a student budget is challenging. Students who end up finding a non-sublet apartment usually do it through *SSSB*, after spending a year or two in their queueing system.
@@ -14,23 +15,136 @@ Precisely how long you stay in their queue is up to you, since you can apply for
 This project was made to harvest data from the SSSB website in order to gain more insight into these factors.
 
 ## How it works
-The program periodically (a few hours apart) downloads a list of all apartments for rent and their details regarding queue times. When a listing only has a couple of seconds until it closes, the program downloads the details for that listing once again, in order to see how many queue points were needed for that particular listing.
+The API provides endpoints to scrape SSSB apartment listings and their details regarding queue times. You can trigger full scrapes of all apartments or scrape individual apartments by their reference ID.
 
-## Building and running
-You'll need an accessible PostgreSQL server running with a database called "*sssbpp*", and a user called "*collector*". The database needs 2 tables and 2 views. The table structures can be seen at the top of the `scraper.go` program, and the views can be generated using the 2 `.sql`-files in the scraping directory.
+The scraper uses Playwright to handle the JavaScript-rendered content on the SSSB website. It scrapes from:
+- Listing page: `https://minasidor.sssb.se/lediga-bostader/`
+- Individual apartment pages: `https://minasidor.sssb.se/lediga-bostader/lagenhet/?refid=...`
 
-You'll also need to have Go installed (go1.16.3) in order to build.
+## Setup
+
+### Prerequisites
+- Node.js 18+ 
+- pnpm (package manager)
+
+### Installation
 
 ```bash
-git clone git@github.com:jolerus/sssbpp.git
-cd scraping
-go get
-go build
-./sssbpp-scraper <collector-db-password> <db-hostname>
+git clone <repository-url>
+cd sssbpp
+pnpm install
 ```
 
-## Ideas on further development
-- Building API endpoints for retrieving the data
-- Presenting the data in an article after collecting enough data (probably a year's worth)
-- Building a web app where students can browse the data to gain better insight into when to apply for an apartment *(hence the name SSSB++)*
+Note: The `postinstall` script will automatically install Playwright's Chromium browser. This may take a few minutes on first install.
 
+### Environment Variables
+
+Create a `.env.local` file in the root directory with your API key:
+
+```bash
+API_KEY=your-secret-api-key-here
+```
+
+All API endpoints require authentication via the `X-API-Key` header or `Authorization: Bearer <key>` header.
+
+### Development
+
+```bash
+pnpm dev
+```
+
+The application will be available at `http://localhost:3000`
+
+### Build
+
+```bash
+pnpm build
+pnpm start
+```
+
+## API Endpoints
+
+All endpoints require API key authentication. Include your API key in the request headers:
+
+- `X-API-Key: your-api-key` or
+- `Authorization: Bearer your-api-key`
+
+### GET `/api/scrape/list`
+Returns a list of all available apartment reference IDs (refIds) without scraping full details. This is faster than the full scrape endpoint.
+
+**Headers:**
+- `X-API-Key` or `Authorization: Bearer <key>`
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 42,
+  "refIds": ["refId1", "refId2", ...],
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
+
+### POST `/api/scrape/full`
+Scrapes all available apartments from SSSB.
+
+**Headers:**
+- `X-API-Key` or `Authorization: Bearer <key>`
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 42,
+  "apartments": [...],
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
+
+### GET `/api/scrape/apartment/[refId]`
+Scrapes a single apartment by its reference ID.
+
+**Headers:**
+- `X-API-Key` or `Authorization: Bearer <key>`
+
+**Response:**
+```json
+{
+  "success": true,
+  "apartment": {
+    "objNr": "...",
+    "refId": "...",
+    "hood": "...",
+    "aptType": "...",
+    "address": "...",
+    "aptNr": "...",
+    "availableUntil": "...",
+    "bestPoints": 1234,
+    "bookers": 42,
+    "infoLink": "...",
+    "moveIn": "...",
+    "rent": 5000,
+    "sqm": 25,
+    "special": ""
+  },
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
+
+## Deployment to Netlify
+
+This project is configured for deployment to Netlify:
+
+1. Connect your repository to Netlify
+2. Set the build command: `pnpm build`
+3. Set the publish directory: `.next`
+4. The `netlify.toml` file is already configured with the Next.js plugin
+5. Add the `API_KEY` environment variable in Netlify's site settings under "Environment variables"
+
+Netlify will automatically detect the Next.js configuration and deploy accordingly.
+
+## Ideas on further development
+- Building a frontend to browse and visualize the scraped data
+- Adding database storage for historical data
+- Setting up scheduled scraping via Netlify Functions or external cron services
+- Building analytics and insights into queue point trends
