@@ -239,21 +239,26 @@ export async function scrapeAllApartments(offset?: number, limit?: number): Prom
   const refIdsToScrape = refIds.slice(start, end);
 
   const apartments: Apartment[] = [];
-  const scrapingPromises = refIdsToScrape.map(async (refId) => {
-    console.log(`Scraping apartment ${refId}...`);
-    try {
-      const apt = await getApartment(refId);
-      return { success: true, apt, refId };
-    } catch (error) {
-      console.error(`Error scraping apartment ${refId}:`, error);
-      return { success: false, error, refId };
-    }
-  });
+  const batchSize = 5;
 
-  const results = await Promise.allSettled(scrapingPromises);
-  for (const result of results) {
-    if (result.status === 'fulfilled' && result.value.success && result.value.apt) {
-      apartments.push(result.value.apt);
+  for (let i = 0; i < refIdsToScrape.length; i += batchSize) {
+    const batch = refIdsToScrape.slice(i, i + batchSize);
+    const scrapingPromises = batch.map(async (refId) => {
+      console.log(`Scraping apartment ${refId}...`);
+      try {
+        const apt = await getApartment(refId);
+        return { success: true, apt, refId };
+      } catch (error) {
+        console.error(`Error scraping apartment ${refId}:`, error);
+        return { success: false, error, refId };
+      }
+    });
+
+    const results = await Promise.allSettled(scrapingPromises);
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.success && result.value.apt) {
+        apartments.push(result.value.apt);
+      }
     }
   }
 
