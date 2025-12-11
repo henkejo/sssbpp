@@ -146,11 +146,27 @@ export async function getApartment(refId: string): Promise<Apartment> {
     const pageData = await page.evaluate(() => {
       const data: Record<string, string> = {};
       
-      const h1 = document.querySelector('h1');
+      const h1 = document.querySelector('h1.apt-title');
       if (h1) data.address = h1.textContent || '';
       
-      const h2 = document.querySelector('h2');
-      if (h2) data.type = h2.textContent || '';
+      const typeEl = document.querySelector('p.apt-address');
+      if (typeEl) data.type = typeEl.textContent || '';
+      
+      const areaLink = document.querySelector('.apt-details-data a[href*="sssb.se"]');
+      if (areaLink) data.area = areaLink.textContent || '';
+      
+      const headers = Array.from(document.querySelectorAll('.apt-details-headers li'));
+      const dataItems = Array.from(document.querySelectorAll('.apt-details-data li'));
+      
+      const inflyttningIndex = headers.findIndex(li => li.textContent?.toLowerCase().includes('inflyttning'));
+      if (inflyttningIndex >= 0 && dataItems[inflyttningIndex]) {
+        data.moveIn = dataItems[inflyttningIndex].textContent || '';
+      }
+      
+      const hyraIndex = headers.findIndex(li => li.textContent?.toLowerCase().includes('hyra'));
+      if (hyraIndex >= 0 && dataItems[hyraIndex]) {
+        data.rent = dataItems[hyraIndex].textContent || '';
+      }
       
       const bodyText = document.body.textContent || '';
       data.bodyText = bodyText;
@@ -172,13 +188,16 @@ export async function getApartment(refId: string): Promise<Apartment> {
       apt.aptType = pageData.type.trim();
     }
 
-    const allText = pageData.bodyText || '';
+    if (pageData.area) {
+      apt.hood = pageData.area.trim();
+    }
 
-    const rentMatch = allText.match(/hyra[:\s]*(\d+(?:\s+\d+)*)\s*kr/gi);
-    if (rentMatch) {
-      const rentStr = rentMatch[0].match(/\d+/g)?.join('') || '';
+    if (pageData.rent) {
+      const rentStr = pageData.rent.match(/\d+/g)?.join('') || '';
       apt.rent = parseInt(rentStr, 10) || 0;
     }
+
+    const allText = pageData.bodyText || '';
 
     const sqmMatch = allText.match(/(\d+)\s*m[²2]|(\d+)\s*kvadratmeter/gi);
     if (sqmMatch) {
@@ -186,9 +205,11 @@ export async function getApartment(refId: string): Promise<Apartment> {
       apt.sqm = parseInt(sqmStr, 10) || 0;
     }
 
-    const moveInMatch = allText.match(/inflyttning[:\s]*(\d{4}-\d{2}-\d{2})/i);
-    if (moveInMatch) {
-      apt.moveIn = new Date(moveInMatch[1]);
+    if (pageData.moveIn) {
+      const moveInMatch = pageData.moveIn.match(/(\d{4}-\d{2}-\d{2})/);
+      if (moveInMatch) {
+        apt.moveIn = new Date(moveInMatch[1]);
+      }
     }
 
     const interestMatch = allText.match(/(\d+)\s*\((\d+)\s*st/i);
@@ -200,11 +221,6 @@ export async function getApartment(refId: string): Promise<Apartment> {
     const availableMatch = allText.match(/till\s+(\d{4}-\d{2}-\d{2})\s+klockan\s+(\d{2}:\d{2})/i);
     if (availableMatch) {
       apt.availableUntil = stockholmTimeToUTC(availableMatch[1], availableMatch[2]);
-    }
-
-    const hoodMatch = allText.match(/omr[åa]de[:\s]*([^\n,]+)/i);
-    if (hoodMatch) {
-      apt.hood = hoodMatch[1].trim();
     }
 
     return apt;
