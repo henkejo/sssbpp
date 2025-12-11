@@ -37,6 +37,16 @@ pnpm install
 
 Note: The `postinstall` script will automatically install Playwright's Chromium browser. This may take a few minutes on first install.
 
+### Environment Variables
+
+Create a `.env.local` file in the root directory with your API key:
+
+```bash
+API_KEY=your-secret-api-key-here
+```
+
+All API endpoints require authentication via the `X-API-Key` header or `Authorization: Bearer <key>` header.
+
 ### Development
 
 ```bash
@@ -54,8 +64,16 @@ pnpm start
 
 ## API Endpoints
 
+All endpoints require API key authentication. Include your API key in the request headers:
+
+- `X-API-Key: your-api-key` or
+- `Authorization: Bearer your-api-key`
+
 ### GET `/api/scrape/list`
 Returns a list of all available apartment reference IDs (refIds) without scraping full details. This is faster than the full scrape endpoint.
+
+**Headers:**
+- `X-API-Key` or `Authorization: Bearer <key>`
 
 **Response:**
 ```json
@@ -70,6 +88,9 @@ Returns a list of all available apartment reference IDs (refIds) without scrapin
 ### POST `/api/scrape/full`
 Scrapes all available apartments from SSSB.
 
+**Headers:**
+- `X-API-Key` or `Authorization: Bearer <key>`
+
 **Response:**
 ```json
 {
@@ -82,6 +103,9 @@ Scrapes all available apartments from SSSB.
 
 ### GET `/api/scrape/apartment/[refId]`
 Scrapes a single apartment by its reference ID.
+
+**Headers:**
+- `X-API-Key` or `Authorization: Bearer <key>`
 
 **Response:**
 ```json
@@ -115,6 +139,7 @@ This project is configured for deployment to Netlify:
 2. Set the build command: `pnpm build`
 3. Set the publish directory: `.next`
 4. The `netlify.toml` file is already configured with the Next.js plugin
+5. Add the `API_KEY` environment variable in Netlify's site settings under "Environment variables"
 
 Netlify will automatically detect the Next.js configuration and deploy accordingly.
 

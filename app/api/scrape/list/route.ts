@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getApartmentList } from '@/lib/scraper';
+import { validateApiKey } from '@/lib/api-auth';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = validateApiKey(request);
+  if (authError) return authError;
+
   try {
     const refIds = await getApartmentList();
     return NextResponse.json({
