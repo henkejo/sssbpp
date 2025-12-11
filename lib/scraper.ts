@@ -20,7 +20,10 @@ export interface Apartment {
 let browser: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
-  if (!browser) {
+  if (!browser || !browser.isConnected()) {
+    if (browser && !browser.isConnected()) {
+      browser = null;
+    }
     browser = await chromium.launch({
       headless: true,
       args: [
@@ -46,8 +49,20 @@ export async function closeBrowser(): Promise<void> {
 
 export async function getApartmentList(): Promise<string[]> {
   const aptsListLink = "https://minasidor.sssb.se/lediga-bostader/?pagination=0&paginationantal=1000";
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  let browser = await getBrowser();
+  let page: Page;
+  
+  try {
+    page = await browser.newPage();
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('closed')) {
+      await closeBrowser();
+      browser = await getBrowser();
+      page = await browser.newPage();
+    } else {
+      throw error;
+    }
+  }
 
   try {
     await page.goto(aptsListLink, { waitUntil: 'domcontentloaded' });
@@ -84,8 +99,20 @@ export async function getApartmentList(): Promise<string[]> {
 
 export async function getApartment(refId: string): Promise<Apartment> {
   const aptLink = `https://minasidor.sssb.se/lediga-bostader/lagenhet/?refid=${refId}`;
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  let browser = await getBrowser();
+  let page: Page;
+  
+  try {
+    page = await browser.newPage();
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('closed')) {
+      await closeBrowser();
+      browser = await getBrowser();
+      page = await browser.newPage();
+    } else {
+      throw error;
+    }
+  }
 
   try {
     await page.goto(aptLink, { waitUntil: 'domcontentloaded' });
