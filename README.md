@@ -1,23 +1,22 @@
 # SSSB++ 
 
 ## What's this? 
-A Next.js API application for scraping data regarding queue times for the largest student accommodation service in Stockholm, *SSSB*. 🏢
+A work in progress Next.js app for scraping queue time data from *SSSB*, Stockholm's largest student accommodation service. 🏢
 
-Built as a hobby project and learning experience in Next.js, TypeScript, and Netlify.
+Built as a hobby project and learning experience. Originally to familiarise myself with Golang and Golang ORM libraries + Postgres. However, the new version is written in Next.js + TypeScript to work towards a monorepo SSSB analytics dashboard.
 
 ## Background
-Finding an apartment in Stockholm on a student budget is challenging. Students who end up finding a non-sublet apartment usually do it through *SSSB*, after spending a year or two in their queueing system.
+Finding student accommodation in Stockholm is challenging. Those who secure a first-hand lease typically do so through *SSSB*, the Stockholm Student Unions' Central Organization student housing service, after spending a year or two in their queueing system.
 
-Precisely how long you stay in their queue is up to you, since you can apply for an apartment whenever you wish. More days in queue = more queue points = a better apartment.
+Once you start studying and join a student union, you can begin collecting queue points. You can apply from a list of available housing units whenever you wish, and more queue points generally give you access to better accommodation options (the applicant with the most queue points is offered the flat).
 
-*Except*, this isn't always the case. The apartment you can get for your queue points depends on a bunch of factors. For instance, some residential areas are more popular. Also, you usually need more points at the start of a semester.
-
-This project was made to harvest data from the SSSB website in order to gain more insight into these factors.
+This project was created to collect data from the SSSB website to gain deeper insight into these factors and better understand the dynamics of the queueing system (seasonal fluctuations, trends, etc.).
 
 ## How it works
+Currently, only the scraping trigger API is up and working.
 The API provides endpoints to scrape SSSB apartment listings and their details regarding queue times. You can trigger full scrapes of all apartments or scrape individual apartments by their reference ID.
 
-The scraper uses Playwright to handle the JavaScript-rendered content on the SSSB website. It scrapes from:
+The scraper uses Puppeteer and chromium-min to handle the JavaScript-rendered content on the SSSB website. It scrapes from:
 - Listing page: `https://minasidor.sssb.se/lediga-bostader/`
 - Individual apartment pages: `https://minasidor.sssb.se/lediga-bostader/lagenhet/?refid=...`
 
@@ -131,20 +130,8 @@ Scrapes a single apartment by its reference ID.
 }
 ```
 
-## Deployment to Netlify
-
-This project is configured for deployment to Netlify:
-
-1. Connect your repository to Netlify
-2. Set the build command: `pnpm build`
-3. Set the publish directory: `.next`
-4. The `netlify.toml` file is already configured with the Next.js plugin
-5. Add the `API_KEY` environment variable in Netlify's site settings under "Environment variables"
-
-Netlify will automatically detect the Next.js configuration and deploy accordingly.
-
 ## Ideas on further development
-- Building a frontend to browse and visualize the scraped data
 - Adding database storage for historical data
 - Setting up scheduled scraping via Netlify Functions or external cron services
+- Building a frontend to browse and visualize the scraped data
 - Building analytics and insights into queue point trends
