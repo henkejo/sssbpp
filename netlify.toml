@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm install && npx playwright install --with-deps chromium && pnpm build"
+  command = "pnpm install && npx playwright install chromium && pnpm build"
   publish = ".next"
 
 [build.environment]
