@@ -1,4 +1,5 @@
-import { chromium, type Browser, type Page } from 'playwright';
+import puppeteer, { type Browser, type Page } from 'puppeteer-core';
+import chromium from '@sparticuz/chromium-min';
 import { fromZonedTime } from 'date-fns-tz';
 
 export interface Apartment {
@@ -28,21 +29,39 @@ function stockholmTimeToUTC(dateStr: string, timeStr: string): Date {
 let browser: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
-  if (!browser || !browser.isConnected()) {
-    if (browser && !browser.isConnected()) {
-      browser = null;
+  if (!browser) {
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY === 'true';
+    let executablePath: string | undefined;
+    let channel: 'chrome' | 'chromium' | undefined;
+
+    if (isProduction) {
+      executablePath = await chromium.executablePath(
+        'https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar'
+      );
+    } else {
+      channel = 'chrome';
     }
-    browser = await chromium.launch({
+
+    browser = await puppeteer.launch({
+      args: isProduction
+        ? [
+            ...chromium.args,
+            '--hide-scrollbars',
+            '--disable-web-security',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+          ]
+        : ['--no-sandbox', '--disable-setuid-sandbox'],
+      defaultViewport: isProduction ? chromium.defaultViewport : { width: 1280, height: 720 },
+      executablePath,
+      channel,
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-      ],
+      ignoreHTTPSErrors: true,
     });
   }
   return browser;
@@ -63,7 +82,7 @@ export async function getApartmentList(): Promise<string[]> {
   try {
     page = await browser.newPage();
   } catch (error) {
-    if (error instanceof Error && error.message.includes('closed')) {
+    if (error instanceof Error && (error.message.includes('closed') || error.message.includes('Target closed'))) {
       await closeBrowser();
       browser = await getBrowser();
       page = await browser.newPage();
@@ -79,7 +98,7 @@ export async function getApartmentList(): Promise<string[]> {
       console.warn('Apartment list container not found');
     });
     
-    await page.waitForTimeout(3000);
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     const refIds = await page.evaluate(() => {
       const refIdSet = new Set<string>();
@@ -113,7 +132,7 @@ export async function getApartment(refId: string): Promise<Apartment> {
   try {
     page = await browser.newPage();
   } catch (error) {
-    if (error instanceof Error && error.message.includes('closed')) {
+    if (error instanceof Error && (error.message.includes('closed') || error.message.includes('Target closed'))) {
       await closeBrowser();
       browser = await getBrowser();
       page = await browser.newPage();
@@ -124,7 +143,7 @@ export async function getApartment(refId: string): Promise<Apartment> {
 
   try {
     await page.goto(aptLink, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2000);
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     const apt: Apartment = {
       objNr: '',
