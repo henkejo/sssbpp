@@ -61,7 +61,6 @@ async function getBrowser(): Promise<Browser> {
       executablePath,
       channel,
       headless: true,
-      ignoreHTTPSErrors: true,
     });
   }
   return browser;
