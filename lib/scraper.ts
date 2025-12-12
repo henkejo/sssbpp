@@ -32,7 +32,7 @@ async function getBrowser(): Promise<Browser> {
   if (!browser) {
     const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY === 'true';
     let executablePath: string | undefined;
-    let channel: 'chrome' | 'chromium' | undefined;
+    let channel: 'chrome' | undefined;
 
     if (isProduction) {
       executablePath = await chromium.executablePath(
