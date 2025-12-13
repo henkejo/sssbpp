@@ -5,9 +5,6 @@
 [functions]
   node_bundler = "esbuild"
 
-[functions."scheduled-scrape"]
-  schedule = "@hourly"
-
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 

@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/scrape/full?save=true",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
+

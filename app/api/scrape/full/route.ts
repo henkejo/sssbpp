@@ -6,8 +6,14 @@ import { badRequestError, serverError } from '@/lib/error-handlers';
 import { saveApartments } from '@/lib/db/helpers';
 
 export async function GET(request: Request) {
-  const authError = validateApiKey(request);
-  if (authError) return authError;
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  const isCronRequest = cronSecret && authHeader === `Bearer ${cronSecret}`;
+  
+  if (!isCronRequest) {
+    const authError = validateApiKey(request);
+    if (authError) return authError;
+  }
 
   const { searchParams } = new URL(request.url);
   const offset = searchParams.get('offset');
