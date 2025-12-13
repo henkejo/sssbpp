@@ -38,10 +38,11 @@ Note: The `postinstall` script will automatically install Playwright's Chromium 
 
 ### Environment Variables
 
-Create a `.env.local` file in the root directory with your API key:
+Create a `.env.local` file in the root directory with your API key and database URL:
 
 ```bash
 API_KEY=your-secret-api-key-here
+DATABASE_URL=postgresql://user:password@host:port/database
 ```
 
 All API endpoints require authentication via the `X-API-Key` header or `Authorization: Bearer <key>` header.
@@ -53,6 +54,20 @@ pnpm dev
 ```
 
 The application will be available at `http://localhost:3000`
+
+### Database Setup
+
+After setting up your `DATABASE_URL`, generate and run migrations:
+
+```bash
+pnpm db:generate
+pnpm db:push
+```
+
+Or use Drizzle Studio to view your database:
+```bash
+pnpm db:studio
+```
 
 ### Build
 
@@ -130,8 +145,16 @@ Scrapes a single apartment by its reference ID.
 }
 ```
 
+## Database
+
+The application uses Drizzle ORM with PostgreSQL (via Supabase) to store scraped apartment data. The database includes:
+
+- **apartments**: Current state of each apartment (upserted on each scrape)
+- **scrapes**: Historical tracking of queue points and bookers over time
+
+All scrape endpoints automatically save data to the database.
+
 ## Ideas on further development
-- Adding database storage for historical data
 - Setting up scheduled scraping via Netlify Functions or external cron services
 - Building a frontend to browse and visualize the scraped data
 - Building analytics and insights into queue point trends

@@ -257,7 +257,7 @@ export async function scrapeAllApartments(offset?: number, limit?: number): Prom
   const refIdsToScrape = refIds.slice(start, end);
 
   const apartments: Apartment[] = [];
-  const batchSize = 5;
+  const batchSize = 3;
 
   for (let i = 0; i < refIdsToScrape.length; i += batchSize) {
     const batch = refIdsToScrape.slice(i, i + batchSize);

@@ -12,6 +12,7 @@ export async function GET(
   try {
     const { refId } = await params;
     const apartment = await getApartment(refId);
+    
     return NextResponse.json({
       success: true,
       apartment,
