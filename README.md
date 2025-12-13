@@ -57,17 +57,24 @@ The application will be available at `http://localhost:3000`
 
 ### Database Setup
 
-After setting up your `DATABASE_URL`, generate and run migrations:
+After setting up your `DATABASE_URL` in `.env.local`, push your schema to the database:
+
+```bash
+pnpm db:push
+```
+
+This will create the tables directly from your schema. For production, you can generate and run migrations:
 
 ```bash
 pnpm db:generate
-pnpm db:push
+pnpm db:migrate
 ```
 
 Or use Drizzle Studio to view your database:
 ```bash
 pnpm db:studio
 ```
+
 
 ### Build
 

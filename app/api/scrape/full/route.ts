@@ -21,12 +21,12 @@ export async function GET(request: Request) {
   const save = searchParams.get('save') === 'true';
 
   const hasOffsetOrLimit = offset !== null || limit !== null;
-  const shouldSave = save && !hasOffsetOrLimit;
-
-  // Give bad request error if saving with offset or limit
-  if (shouldSave && (offset !== null || limit !== null)) {
+  
+  if (save && hasOffsetOrLimit) {
     return badRequestError('Saving with offset or limit is not allowed');
   }
+  
+  const shouldSave = save && !hasOffsetOrLimit;
 
   try {
     const apartments = await scrapeAllApartments(offset ? parseInt(offset) : undefined, limit ? parseInt(limit) : undefined);
