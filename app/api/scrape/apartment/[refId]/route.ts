@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getApartment } from '@/lib/scraper';
+import { getApartment, closeBrowser } from '@/lib/scraper';
 import { validateApiKey } from '@/lib/api-auth';
 
 export async function GET(
@@ -27,6 +27,8 @@ export async function GET(
       },
       { status: 500 }
     );
+  } finally {
+    await closeBrowser();
   }
 }
 

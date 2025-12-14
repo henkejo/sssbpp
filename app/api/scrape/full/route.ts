@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { scrapeAllApartments } from '@/lib/scraper';
+import { scrapeAllApartments, closeBrowser } from '@/lib/scraper';
 import { validateApiKey } from '@/lib/api-auth';
 import { validNonNegativeIntegerParam } from '@/lib/helpers';
 import { badRequestError, serverError } from '@/lib/error-handlers';
@@ -51,6 +51,8 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Full scrape error:', error);
     return serverError(error);
+  } finally {
+    await closeBrowser();
   }
 }
 

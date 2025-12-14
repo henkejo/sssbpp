@@ -35,7 +35,7 @@ async function getBrowser(): Promise<Browser> {
     let channel: 'chrome' | undefined;
 
     if (isProduction) {
-      chromium.setGraphicsMode(false);
+      chromium.setGraphicsMode = false;
       executablePath = await chromium.executablePath();
     } else {
       channel = 'chrome';
@@ -247,37 +247,41 @@ export async function getApartment(refId: string): Promise<Apartment> {
 }
 
 export async function scrapeAllApartments(offset?: number, limit?: number): Promise<Apartment[]> {
-  console.log('Scraping apartment list...');
-  const refIds = await getApartmentList();
-  console.log(`Found ${refIds.length} apartments`);
+  try {
+    console.log('Scraping apartment list...');
+    const refIds = await getApartmentList();
+    console.log(`Found ${refIds.length} apartments`);
 
-  const start = offset ?? 0;
-  const end = limit !== undefined ? start + limit : undefined;
-  const refIdsToScrape = refIds.slice(start, end);
+    const start = offset ?? 0;
+    const end = limit !== undefined ? start + limit : undefined;
+    const refIdsToScrape = refIds.slice(start, end);
 
-  const apartments: Apartment[] = [];
-  const batchSize = 3;
+    const apartments: Apartment[] = [];
+    const batchSize = 3;
 
-  for (let i = 0; i < refIdsToScrape.length; i += batchSize) {
-    const batch = refIdsToScrape.slice(i, i + batchSize);
-    const scrapingPromises = batch.map(async (refId) => {
-      console.log(`Scraping apartment ${refId}...`);
-      try {
-        const apt = await getApartment(refId);
-        return { success: true, apt, refId };
-      } catch (error) {
-        console.error(`Error scraping apartment ${refId}:`, error);
-        return { success: false, error, refId };
-      }
-    });
+    for (let i = 0; i < refIdsToScrape.length; i += batchSize) {
+      const batch = refIdsToScrape.slice(i, i + batchSize);
+      const scrapingPromises = batch.map(async (refId) => {
+        console.log(`Scraping apartment ${refId}...`);
+        try {
+          const apt = await getApartment(refId);
+          return { success: true, apt, refId };
+        } catch (error) {
+          console.error(`Error scraping apartment ${refId}:`, error);
+          return { success: false, error, refId };
+        }
+      });
 
-    const results = await Promise.allSettled(scrapingPromises);
-    for (const result of results) {
-      if (result.status === 'fulfilled' && result.value.success && result.value.apt) {
-        apartments.push(result.value.apt);
+      const results = await Promise.allSettled(scrapingPromises);
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.success && result.value.apt) {
+          apartments.push(result.value.apt);
+        }
       }
     }
-  }
 
-  return apartments;
+    return apartments;
+  } finally {
+    await closeBrowser();
+  }
 }
