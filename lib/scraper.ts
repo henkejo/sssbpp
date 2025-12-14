@@ -169,8 +169,8 @@ export async function getApartment(refId: string): Promise<Apartment> {
     if (!response || !response.ok()) {
       throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
     }
-    await page.waitForSelector('p.apt-address', { timeout: 10000 }).catch(() => {
-      console.warn('Apt address selector not found quickly');
+    await page.waitForSelector('ul.apt-details-data', { timeout: 10000 }).catch(() => {
+      console.warn('Apt details data selector not found quickly');
     });
     await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -287,8 +287,8 @@ export async function getApartment(refId: string): Promise<Apartment> {
         if (!response || !response.ok()) {
           throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
         }
-        await newPage.waitForSelector('p.apt-address', { timeout: 10000 }).catch(() => {
-          console.warn('Apt address selector not found quickly on retry');
+        await newPage.waitForSelector('ul.apt-details-data', { timeout: 10000 }).catch(() => {
+          console.warn('Apt details data selector not found quickly on retry');
         });
         await new Promise(resolve => setTimeout(resolve, 2000));
 
