@@ -36,26 +36,15 @@ async function getBrowser(): Promise<Browser> {
 
     if (isProduction) {
       chromium.setGraphicsMode = false;
-      executablePath = await chromium.executablePath();
+      executablePath = await chromium.executablePath(
+        'https://github.com/Sparticuz/chromium/releases/download/v143.0.0/chromium-v143.0.0-pack.tar'
+      );
     } else {
       channel = 'chrome';
     }
 
     browser = await puppeteer.launch({
-      args: isProduction
-        ? [
-            ...chromium.args,
-            '--hide-scrollbars',
-            '--disable-web-security',
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-          ]
-        : ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: isProduction ? chromium.args : ['--no-sandbox', '--disable-setuid-sandbox'],
       defaultViewport: isProduction ? chromium.defaultViewport : { width: 1280, height: 720 },
       executablePath,
       channel,
