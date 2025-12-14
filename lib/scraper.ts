@@ -169,10 +169,18 @@ export async function getApartment(refId: string): Promise<Apartment> {
     if (!response || !response.ok()) {
       throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
     }
-    await page.waitForSelector('ul.apt-details-data', { timeout: 10000 }).catch(() => {
-      console.warn('Apt details data selector not found quickly');
+    await page.waitForFunction(
+      () => {
+        const ul = document.querySelector('ul.apt-details-data');
+        if (!ul) return false;
+        const text = ul.textContent || '';
+        return !text.includes('{{') && !text.includes('}}');
+      },
+      { timeout: 15000 }
+    ).catch(() => {
+      console.warn('Apt details data not fully rendered (mustache templates still present)');
     });
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const apt: Apartment = {
       objNr: '',
@@ -287,10 +295,18 @@ export async function getApartment(refId: string): Promise<Apartment> {
         if (!response || !response.ok()) {
           throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
         }
-        await newPage.waitForSelector('ul.apt-details-data', { timeout: 10000 }).catch(() => {
-          console.warn('Apt details data selector not found quickly on retry');
+        await newPage.waitForFunction(
+          () => {
+            const ul = document.querySelector('ul.apt-details-data');
+            if (!ul) return false;
+            const text = ul.textContent || '';
+            return !text.includes('{{') && !text.includes('}}');
+          },
+          { timeout: 15000 }
+        ).catch(() => {
+          console.warn('Apt details data not fully rendered on retry (mustache templates still present)');
         });
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         const apt: Apartment = {
           objNr: '',
