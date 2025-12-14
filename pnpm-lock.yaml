@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@sparticuz/chromium':
-        specifier: ^143.0.0
-        version: 143.0.0
+      '@sparticuz/chromium-min':
+        specifier: ^141.0.0
+        version: 141.0.0
       date-fns-tz:
         specifier: ^3.2.0
         version: 3.2.0(date-fns@4.1.0)
@@ -33,6 +33,9 @@ importers:
         specifier: ^19.2.1
         version: 19.2.1(react@19.2.1)
     devDependencies:
+      '@sparticuz/chromium':
+        specifier: ^141.0.0
+        version: 141.0.0
       '@tailwindcss/postcss':
         specifier: ^4.1.17
         version: 4.1.17
@@ -901,8 +904,12 @@ packages:
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
 
-  '@sparticuz/chromium@143.0.0':
-    resolution: {integrity: sha512-/vvplFwu1yDNt/Q1uwXQUwxmfZutU9K+WtzSYwptLWV8IeSdSF6vwW9hW11fZA8Gl9+2mytAGUe6/otgd2VeXA==}
+  '@sparticuz/chromium-min@141.0.0':
+    resolution: {integrity: sha512-1EAR1NBrY4sa0hysDUCxCSI+9xc88/LYB3YjWFqMMu3CF82ATp8FzOeu7icwGxI02NAPcwzb0Uf1kIzsfH7Eiw==}
+    engines: {node: '>=20.11.0'}
+
+  '@sparticuz/chromium@141.0.0':
+    resolution: {integrity: sha512-JsTp4AqgStkqKki4dUpEM0GoisAjQhsqZ1lQTNMSKK5A9pw6BbIuIvv2HVYMYzSZGyDdQNJYBPPDg2eggCkezA==}
     engines: {node: '>=20.11.0'}
 
   '@swc/helpers@0.5.15':
@@ -3492,7 +3499,17 @@ snapshots:
 
   '@rtsao/scc@1.1.0': {}
 
-  '@sparticuz/chromium@143.0.0':
+  '@sparticuz/chromium-min@141.0.0':
+    dependencies:
+      follow-redirects: 1.15.11
+      tar-fs: 3.1.1
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - bare-buffer
+      - debug
+      - react-native-b4a
+
+  '@sparticuz/chromium@141.0.0':
     dependencies:
       follow-redirects: 1.15.11
       tar-fs: 3.1.1

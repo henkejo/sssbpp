@@ -1,5 +1,4 @@
 import puppeteer, { type Browser, type Page } from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 import { fromZonedTime } from 'date-fns-tz';
 
 export interface Apartment {
@@ -26,25 +25,57 @@ function stockholmTimeToUTC(dateStr: string, timeStr: string): Date {
   return fromZonedTime(stockholmDate, 'Europe/Stockholm');
 }
 
+const CHROMIUM_PACK_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/chromium-pack.tar`
+  : process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}/chromium-pack.tar`
+  : "https://github.com/gabenunez/puppeteer-on-vercel/raw/refs/heads/main/example/chromium-dont-use-in-prod.tar";
+
+let cachedExecutablePath: string | null = null;
+let downloadPromise: Promise<string> | null = null;
 let browser: Browser | null = null;
+
+async function getChromiumPath(): Promise<string> {
+  if (cachedExecutablePath) return cachedExecutablePath;
+
+  if (!downloadPromise) {
+    const chromium = (await import("@sparticuz/chromium-min")).default;
+    downloadPromise = chromium
+      .executablePath(CHROMIUM_PACK_URL)
+      .then((path) => {
+        cachedExecutablePath = path;
+        console.log("Chromium path resolved:", path);
+        return path;
+      })
+      .catch((error) => {
+        console.error("Failed to get Chromium path:", error);
+        downloadPromise = null;
+        throw error;
+      });
+  }
+
+  return downloadPromise;
+}
 
 async function getBrowser(): Promise<Browser> {
   if (!browser) {
     const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     let executablePath: string | undefined;
     let channel: 'chrome' | undefined;
+    let launchArgs: string[];
 
     if (isProduction) {
+      const chromium = (await import("@sparticuz/chromium-min")).default;
       chromium.setGraphicsMode = false;
-      executablePath = await chromium.executablePath(
-        'https://github.com/Sparticuz/chromium/releases/download/v143.0.0/chromium-v143.0.0-pack.tar'
-      );
+      executablePath = await getChromiumPath();
+      launchArgs = chromium.args;
     } else {
       channel = 'chrome';
+      launchArgs = ['--no-sandbox', '--disable-setuid-sandbox'];
     }
 
     browser = await puppeteer.launch({
-      args: isProduction ? chromium.args : ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: launchArgs,
       executablePath,
       channel,
       headless: true,
@@ -78,7 +109,10 @@ export async function getApartmentList(): Promise<string[]> {
   }
 
   try {
-    await page.goto(aptsListLink, { waitUntil: 'domcontentloaded' });
+    const response = await page.goto(aptsListLink, { waitUntil: 'domcontentloaded' });
+    if (!response || !response.ok()) {
+      throw new Error(`Failed to load page: ${response?.status() || 'unknown status'}`);
+    }
     
     await page.waitForSelector('.appartment, #apartmentList', { timeout: 15000 }).catch(() => {
       console.warn('Apartment list container not found');
@@ -128,7 +162,10 @@ export async function getApartment(refId: string): Promise<Apartment> {
   }
 
   try {
-    await page.goto(aptLink, { waitUntil: 'domcontentloaded' });
+    const response = await page.goto(aptLink, { waitUntil: 'domcontentloaded' });
+    if (!response || !response.ok()) {
+      throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
+    }
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const apt: Apartment = {
