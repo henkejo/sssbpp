@@ -162,6 +162,6 @@ The application uses Drizzle ORM with PostgreSQL (via Supabase) to store scraped
 All scrape endpoints automatically save data to the database.
 
 ## Ideas on further development
-- Setting up scheduled scraping via Netlify Functions or external cron services
+- Setting up scheduled scraping via Vercel Cron Jobs or external cron services
 - Building a frontend to browse and visualize the scraped data
 - Building analytics and insights into queue point trends

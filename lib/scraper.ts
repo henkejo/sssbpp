@@ -30,7 +30,7 @@ let browser: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
   if (!browser) {
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY === 'true';
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     let executablePath: string | undefined;
     let channel: 'chrome' | undefined;
 
