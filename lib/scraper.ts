@@ -162,7 +162,10 @@ export async function getApartment(refId: string): Promise<Apartment> {
   }
 
   try {
-    const response = await page.goto(aptLink, { waitUntil: 'domcontentloaded' });
+    const response = await page.goto(aptLink, { 
+      waitUntil: 'domcontentloaded',
+      timeout: 30000 
+    });
     if (!response || !response.ok()) {
       throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
     }
@@ -266,8 +269,131 @@ export async function getApartment(refId: string): Promise<Apartment> {
     }
 
     return apt;
+  } catch (error) {
+    if (error instanceof Error && (error.message.includes('closed') || error.message.includes('Target closed') || error.message.includes('Connection closed'))) {
+      console.warn(`Browser connection lost for ${refId}, retrying...`);
+      await page.close().catch(() => {});
+      await closeBrowser();
+      browser = await getBrowser();
+      const newPage = await browser.newPage();
+      try {
+        const response = await newPage.goto(aptLink, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 30000 
+        });
+        if (!response || !response.ok()) {
+          throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const apt: Apartment = {
+          objNr: '',
+          refId: refId,
+          hood: '',
+          aptType: '',
+          address: '',
+          aptNr: '',
+          availableUntil: null,
+          bestPoints: 0,
+          bookers: 0,
+          infoLink: aptLink,
+          moveIn: null,
+          rent: 0,
+          sqm: 0,
+          special: '',
+        };
+
+        const pageData = await newPage.evaluate(() => {
+          const data: Record<string, string> = {};
+          
+          const h1 = document.querySelector('h1.apt-title');
+          if (h1) data.address = h1.textContent || '';
+          
+          const typeEl = document.querySelector('p.apt-address');
+          if (typeEl) data.type = typeEl.textContent || '';
+          
+          const areaLink = document.querySelector('.apt-details-data a[href*="sssb.se"]');
+          if (areaLink) data.area = areaLink.textContent || '';
+          
+          const headers = Array.from(document.querySelectorAll('.apt-details-headers li'));
+          const dataItems = Array.from(document.querySelectorAll('.apt-details-data li'));
+          
+          const inflyttningIndex = headers.findIndex(li => li.textContent?.toLowerCase().includes('inflyttning'));
+          if (inflyttningIndex >= 0 && dataItems[inflyttningIndex]) {
+            data.moveIn = dataItems[inflyttningIndex].textContent || '';
+          }
+          
+          const hyraIndex = headers.findIndex(li => li.textContent?.toLowerCase().includes('hyra'));
+          if (hyraIndex >= 0 && dataItems[hyraIndex]) {
+            data.rent = dataItems[hyraIndex].textContent || '';
+          }
+          
+          const bodyText = document.body.textContent || '';
+          data.bodyText = bodyText;
+          
+          return data;
+        });
+
+        if (pageData.address) {
+          const addressMatch = pageData.address.match(/^(.*?)(?:\s*\/\s*)(.*)$/);
+          if (addressMatch) {
+            apt.address = addressMatch[1].trim();
+            apt.aptNr = addressMatch[2].trim();
+          } else {
+            apt.address = pageData.address.trim();
+          }
+        }
+
+        if (pageData.type) {
+          apt.aptType = pageData.type.trim();
+        }
+
+        if (pageData.area) {
+          apt.hood = pageData.area.trim();
+        }
+
+        if (pageData.rent) {
+          const rentStr = pageData.rent.match(/\d+/g)?.join('') || '';
+          apt.rent = parseInt(rentStr, 10) || 0;
+        }
+
+        const allText = pageData.bodyText || '';
+
+        const sqmMatch = allText.match(/(\d+)\s*m[²2]|(\d+)\s*kvadratmeter/gi);
+        if (sqmMatch) {
+          const sqmStr = sqmMatch[0].match(/\d+/)?.[0] || '';
+          apt.sqm = parseInt(sqmStr, 10) || 0;
+        }
+
+        if (pageData.moveIn) {
+          const moveInMatch = pageData.moveIn.match(/(\d{4}-\d{2}-\d{2})/);
+          if (moveInMatch) {
+            apt.moveIn = new Date(moveInMatch[1]);
+          }
+        }
+
+        const interestMatch = allText.match(/(\d+)\s*\((\d+)\s*st/i);
+        if (interestMatch) {
+          apt.bestPoints = parseInt(interestMatch[1], 10) || 0;
+          apt.bookers = parseInt(interestMatch[2], 10) || 0;
+        }
+
+        const availableMatch = allText.match(/till\s+(\d{4}-\d{2}-\d{2})\s+klockan\s+(\d{2}:\d{2})/i);
+        if (availableMatch) {
+          apt.availableUntil = stockholmTimeToUTC(availableMatch[1], availableMatch[2]);
+        }
+
+        await newPage.close();
+        return apt;
+      } catch (retryError) {
+        await newPage.close().catch(() => {});
+        throw retryError;
+      }
+    } else {
+      throw error;
+    }
   } finally {
-    await page.close();
+    await page.close().catch(() => {});
   }
 }
 
@@ -282,7 +408,7 @@ export async function scrapeAllApartments(offset?: number, limit?: number): Prom
     const refIdsToScrape = refIds.slice(start, end);
 
     const apartments: Apartment[] = [];
-    const batchSize = 3;
+    const batchSize = 1;
 
     for (let i = 0; i < refIdsToScrape.length; i += batchSize) {
       const batch = refIdsToScrape.slice(i, i + batchSize);
