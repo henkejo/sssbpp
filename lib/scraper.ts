@@ -1,5 +1,5 @@
 import puppeteer, { type Browser, type Page } from 'puppeteer-core';
-import chromium from '@sparticuz/chromium-min';
+import chromium from '@sparticuz/chromium';
 import { fromZonedTime } from 'date-fns-tz';
 
 export interface Apartment {
@@ -35,9 +35,8 @@ async function getBrowser(): Promise<Browser> {
     let channel: 'chrome' | undefined;
 
     if (isProduction) {
-      executablePath = await chromium.executablePath(
-        'https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar'
-      );
+      chromium.setGraphicsMode(false);
+      executablePath = await chromium.executablePath();
     } else {
       channel = 'chrome';
     }
@@ -60,7 +59,7 @@ async function getBrowser(): Promise<Browser> {
       defaultViewport: isProduction ? chromium.defaultViewport : { width: 1280, height: 720 },
       executablePath,
       channel,
-      headless: true,
+      headless: isProduction ? chromium.headless : true,
     });
   }
   return browser;
