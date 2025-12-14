@@ -169,6 +169,9 @@ export async function getApartment(refId: string): Promise<Apartment> {
     if (!response || !response.ok()) {
       throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
     }
+    await page.waitForSelector('p.apt-address', { timeout: 10000 }).catch(() => {
+      console.warn('Apt address selector not found quickly');
+    });
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const apt: Apartment = {
@@ -270,8 +273,8 @@ export async function getApartment(refId: string): Promise<Apartment> {
 
     return apt;
   } catch (error) {
-    if (error instanceof Error && (error.message.includes('closed') || error.message.includes('Target closed') || error.message.includes('Connection closed'))) {
-      console.warn(`Browser connection lost for ${refId}, retrying...`);
+    if (error instanceof Error && (error.message.includes('closed') || error.message.includes('Target closed') || error.message.includes('Connection closed') || error.message.includes('detached Frame'))) {
+      console.warn(`Browser error for ${refId}, retrying...`);
       await page.close().catch(() => {});
       await closeBrowser();
       browser = await getBrowser();
@@ -284,6 +287,9 @@ export async function getApartment(refId: string): Promise<Apartment> {
         if (!response || !response.ok()) {
           throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
         }
+        await newPage.waitForSelector('p.apt-address', { timeout: 10000 }).catch(() => {
+          console.warn('Apt address selector not found quickly on retry');
+        });
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         const apt: Apartment = {
