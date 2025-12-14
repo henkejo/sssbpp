@@ -2,8 +2,7 @@
   "crons": [
     {
       "path": "/api/scrape/full?save=true",
-      "schedule": "59 23 * * *",
-      "timezone": "Europe/Stockholm"
+      "schedule": "59 22 * * *"
     }
   ]
 }
