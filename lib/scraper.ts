@@ -45,10 +45,9 @@ async function getBrowser(): Promise<Browser> {
 
     browser = await puppeteer.launch({
       args: isProduction ? chromium.args : ['--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: isProduction ? chromium.defaultViewport : { width: 1280, height: 720 },
       executablePath,
       channel,
-      headless: isProduction ? chromium.headless : true,
+      headless: true,
     });
   }
   return browser;
