@@ -169,17 +169,19 @@ export async function getApartment(refId: string): Promise<Apartment> {
     if (!response || !response.ok()) {
       throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
     }
-    await page.waitForFunction(
-      () => {
-        const ul = document.querySelector('ul.apt-details-data');
-        if (!ul) return false;
-        const text = ul.textContent || '';
-        return !text.includes('{{') && !text.includes('}}');
-      },
-      { timeout: 15000 }
-    ).catch(() => {
-      console.warn('Apt details data not fully rendered (mustache templates still present)');
-    });
+    try {
+      await page.waitForFunction(
+        () => {
+          const ul = document.querySelector('ul.apt-details-data');
+          if (!ul) return false;
+          const text = ul.textContent || '';
+          return !text.includes('{{') && !text.includes('}}');
+        },
+        { timeout: 30000 }
+      );
+    } catch (error) {
+      throw new Error('Apt details data not fully rendered (mustache templates still present)');
+    }
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const apt: Apartment = {
@@ -295,17 +297,19 @@ export async function getApartment(refId: string): Promise<Apartment> {
         if (!response || !response.ok()) {
           throw new Error(`Failed to load apartment page: ${response?.status() || 'unknown status'}`);
         }
-        await newPage.waitForFunction(
-          () => {
-            const ul = document.querySelector('ul.apt-details-data');
-            if (!ul) return false;
-            const text = ul.textContent || '';
-            return !text.includes('{{') && !text.includes('}}');
-          },
-          { timeout: 15000 }
-        ).catch(() => {
-          console.warn('Apt details data not fully rendered on retry (mustache templates still present)');
-        });
+        try {
+          await newPage.waitForFunction(
+            () => {
+              const ul = document.querySelector('ul.apt-details-data');
+              if (!ul) return false;
+              const text = ul.textContent || '';
+              return !text.includes('{{') && !text.includes('}}');
+            },
+            { timeout: 30000 }
+          );
+        } catch (error) {
+          throw new Error('Apt details data not fully rendered on retry (mustache templates still present)');
+        }
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         const apt: Apartment = {
