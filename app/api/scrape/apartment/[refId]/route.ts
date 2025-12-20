@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getApartment, closeBrowser } from '@/lib/scraper';
-import { validateApiKey } from '@/lib/api-auth';
+import { authoriseApiRequest } from '@/lib/api-auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ refId: string }> }
 ) {
-  const authError = validateApiKey(request);
+  const authError = authoriseApiRequest(request);
   if (authError) return authError;
 
   try {

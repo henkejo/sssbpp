@@ -1,7 +1,23 @@
 import { NextResponse } from 'next/server';
 
-export function validateApiKey(request: Request): NextResponse | null {
-  const apiKey = request.headers.get('X-API-Key') || request.headers.get('Authorization')?.replace('Bearer ', '');
+export function authoriseApiRequest(request: Request): NextResponse | null {
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  
+  if (cronSecret && authHeader) {
+    const expectedCronAuth = `Bearer ${cronSecret}`;
+    if (authHeader === expectedCronAuth) {
+      return null;
+    }
+    if (authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid cron secret' },
+        { status: 401 }
+      );
+    }
+  }
+  
+  const apiKey = request.headers.get('X-API-Key') || authHeader?.replace('Bearer ', '');
   const expectedApiKey = process.env.API_KEY;
 
   if (!expectedApiKey) {
