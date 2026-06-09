@@ -5,12 +5,7 @@ import mapboxgl from 'mapbox-gl';
 import Map, { Layer, Source, type MapRef } from 'react-map-gl/mapbox';
 import type { MapMouseEvent } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { AreaOverview } from '@/components/area-overview';
 import { CampusMarker } from '@/components/campus-marker';
 import { CAMPUSES } from '@/lib/campuses';
 import { HOODS, type Hood } from '@/lib/hoods';
@@ -242,23 +237,11 @@ export function HoodsMap() {
         </Map>
       </div>
 
-      <Dialog open={selected !== null} onOpenChange={handleOpenChange}>
-        <DialogContent className="overflow-hidden p-0 sm:max-w-md">
-          {selected ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={selected.imageUrl}
-                alt={selected.name}
-                className="aspect-[16/10] w-full object-cover"
-              />
-              <DialogHeader className="p-4 pt-3">
-                <DialogTitle>{selected.name}</DialogTitle>
-              </DialogHeader>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <AreaOverview
+        hood={selected}
+        open={selected !== null}
+        onOpenChange={handleOpenChange}
+      />
     </>
   );
 }

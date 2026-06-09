@@ -8,7 +8,7 @@ export function MapView() {
     <ViewPage
       back
       title="Area map"
-      description="All SSSB housing areas in Stockholm. Click a circle to see the area."
+      description="All SSSB housing areas in Stockholm. Click a circle to see averages by apartment type."
     >
       <HoodsMap />
     </ViewPage>

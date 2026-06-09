@@ -256,6 +256,65 @@ export async function getApartmentByRefId(
   return fetchApartmentDetail(sql`a.ref_id = ${refId}`);
 }
 
+export type AptTypeClosingStats = {
+  aptType: string;
+  closeCount: number;
+  avgClosePoints: number;
+  avgRent: number;
+  avgSqm: number;
+};
+
+type AptTypeClosingStatsDbRow = {
+  apt_type: string;
+  close_count: number;
+  avg_close_points: string;
+  avg_rent: string | null;
+  avg_sqm: string | null;
+};
+
+export async function getAverageClosingPointsByHood(
+  hoodNames: string[],
+): Promise<AptTypeClosingStats[]> {
+  if (hoodNames.length === 0) {
+    return [];
+  }
+
+  const result = await db.execute<AptTypeClosingStatsDbRow>(sql`
+    WITH latest_scrape AS (
+      SELECT DISTINCT ON (s.apartment_ref_id)
+        s.apartment_ref_id,
+        s.best_points,
+        s.available_until
+      FROM scrapes s
+      WHERE s.available_until IS NOT NULL
+        AND s.available_until < NOW()
+      ORDER BY s.apartment_ref_id, s.scraped_at DESC
+    )
+    SELECT
+      a.apt_type,
+      COUNT(*)::int AS close_count,
+      AVG(ls.best_points) AS avg_close_points,
+      AVG(a.rent) FILTER (WHERE a.rent > 0) AS avg_rent,
+      AVG(a.sqm) FILTER (WHERE a.sqm > 0) AS avg_sqm
+    FROM latest_scrape ls
+    JOIN apartments a ON ls.apartment_ref_id = a.ref_id
+    WHERE a.hood IN (${sql.join(
+      hoodNames.map((name) => sql`${name}`),
+      sql`, `,
+    )})
+    GROUP BY a.apt_type
+    ORDER BY AVG(a.rent) FILTER (WHERE a.rent > 0) ASC NULLS LAST
+  `);
+
+  return result.map((row) => ({
+    aptType: row.apt_type,
+    closeCount: row.close_count,
+    avgClosePoints: Math.round(Number(row.avg_close_points)),
+    avgRent: row.avg_rent ? Math.round(Number(row.avg_rent)) : 0,
+    avgSqm: row.avg_sqm ? Math.round(Number(row.avg_sqm)) : 0,
+  }));
+}
+
 export async function getApartmentScrapeHistory(
   refId: string,
 ): Promise<ScrapeHistoryPoint[]> {

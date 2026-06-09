@@ -207,3 +207,7 @@ export function findHood(name: string): Hood | undefined {
       hood.aliases?.some((alias) => alias.toLowerCase() === normalized),
   );
 }
+
+export function hoodMatchNames(hood: Hood): string[] {
+  return [hood.name, ...(hood.aliases ?? [])];
+}
