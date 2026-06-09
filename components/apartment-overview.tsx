@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { formatRent } from '@/lib/apartment';
 import { t } from '@/lib/i18n';
 
 type ApartmentDetail = {
@@ -164,11 +165,7 @@ export function ApartmentOverview({
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <StatCard
                 label="Rent"
-                value={
-                  detail.rent > 0
-                    ? `${numberFormatter.format(detail.rent)} kr`
-                    : '—'
-                }
+                value={formatRent(detail.rent) ?? '—'}
               />
               <StatCard
                 label="Size"

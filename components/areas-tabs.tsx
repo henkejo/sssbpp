@@ -18,6 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatRent } from '@/lib/apartment';
 import { t } from '@/lib/i18n';
 import type { EndingPointsRow } from '@/lib/db/queries';
 
@@ -76,7 +77,7 @@ function AreaTable({
             <TableCell>{row.address}</TableCell>
             <TableCell>{t`${row.aptType}`}</TableCell>
             <TableCell className="text-right tabular-nums">
-              {row.rent > 0 ? numberFormatter.format(row.rent) : '—'}
+              {formatRent(row.rent) ?? '—'}
             </TableCell>
             <TableCell className="text-right tabular-nums">
               {row.sqm > 0 ? `${numberFormatter.format(row.sqm)} m²` : '—'}

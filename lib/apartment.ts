@@ -1,3 +1,14 @@
+const rentAmountFormatter = new Intl.NumberFormat('en-IE', {
+  maximumFractionDigits: 0,
+});
+
+export function formatRent(rent: number): string | null {
+  if (rent <= 0) {
+    return null;
+  }
+  return `€ ${rentAmountFormatter.format(rent / 10)}`;
+}
+
 export function getLevelFromAptNr(aptNr: string): number | null {
   const digits = aptNr.replace(/\D/g, '');
   if (digits.length >= 4) {

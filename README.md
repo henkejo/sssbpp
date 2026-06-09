@@ -43,7 +43,10 @@ Create a `.env.local` file in the root directory with your API key and database 
 ```bash
 API_KEY=your-secret-api-key-here
 DATABASE_URL=postgresql://user:password@host:port/database
+NEXT_PUBLIC_MAPBOX_TOKEN=your-mapbox-public-token
 ```
+
+The area map view requires a [Mapbox access token](https://account.mapbox.com/access-tokens/) with the `NEXT_PUBLIC_` prefix so it is available in the browser.
 
 All API endpoints require authentication via the `X-API-Key` header or `Authorization: Bearer <key>` header.
 
