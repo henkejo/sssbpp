@@ -2,24 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { HoodsTabs, type HoodData } from '@/components/hoods-tabs';
+import { AreasTabs, type AreaData } from '@/components/areas-tabs';
 
-export function HoodsContent() {
-  const [hoods, setHoods] = useState<HoodData[] | null>(null);
+type AreasResponse = {
+  areas: AreaData[];
+  all: AreaData['rows'];
+};
+
+export function AreasContent() {
+  const [data, setData] = useState<AreasResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/hoods?limit=25')
+    fetch('/api/areas?limit=25&allLimit=50')
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => null);
           throw new Error(body?.error ?? `Request failed (${res.status})`);
         }
-        return res.json() as Promise<{ hoods: HoodData[] }>;
+        return res.json() as Promise<AreasResponse>;
       })
-      .then((data) => setHoods(data.hoods))
+      .then(setData)
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Failed to load hoods');
+        setError(err instanceof Error ? err.message : 'Failed to load areas');
       });
   }, []);
 
@@ -33,7 +38,7 @@ export function HoodsContent() {
     );
   }
 
-  if (hoods === null) {
+  if (data === null) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
@@ -43,7 +48,7 @@ export function HoodsContent() {
     );
   }
 
-  if (hoods.length === 0) {
+  if (data.areas.length === 0 && data.all.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
@@ -53,5 +58,5 @@ export function HoodsContent() {
     );
   }
 
-  return <HoodsTabs hoods={hoods} />;
+  return <AreasTabs areas={data.areas} allRows={data.all} />;
 }
