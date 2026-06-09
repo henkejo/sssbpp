@@ -272,6 +272,79 @@ type AptTypeClosingStatsDbRow = {
   avg_sqm: string | null;
 };
 
+export type MonthlyClosingPoints = {
+  month: number;
+  avgClosePoints: number | null;
+  closeCount: number;
+};
+
+type MonthlyClosingPointsDbRow = {
+  month: number;
+  avg_close_points: string;
+  close_count: number;
+};
+
+const SEASON_MONTHS = [12, 1, 2, 3, 4, 5, 6] as const;
+
+export async function getMonthlyClosingPointsByAptType(
+  hoodNames: string[],
+  aptType: string,
+): Promise<MonthlyClosingPoints[]> {
+  if (hoodNames.length === 0) {
+    return SEASON_MONTHS.map((month) => ({
+      month,
+      avgClosePoints: null,
+      closeCount: 0,
+    }));
+  }
+
+  const result = await db.execute<MonthlyClosingPointsDbRow>(sql`
+    WITH latest_scrape AS (
+      SELECT DISTINCT ON (s.apartment_ref_id)
+        s.apartment_ref_id,
+        s.best_points,
+        s.available_until
+      FROM scrapes s
+      WHERE s.available_until IS NOT NULL
+        AND s.available_until < NOW()
+      ORDER BY s.apartment_ref_id, s.scraped_at DESC
+    )
+    SELECT
+      EXTRACT(MONTH FROM ls.available_until)::int AS month,
+      AVG(ls.best_points) AS avg_close_points,
+      COUNT(*)::int AS close_count
+    FROM latest_scrape ls
+    JOIN apartments a ON ls.apartment_ref_id = a.ref_id
+    WHERE a.hood IN (${sql.join(
+      hoodNames.map((name) => sql`${name}`),
+      sql`, `,
+    )})
+      AND a.apt_type = ${aptType}
+      AND EXTRACT(MONTH FROM ls.available_until)::int IN (12, 1, 2, 3, 4, 5, 6)
+    GROUP BY EXTRACT(MONTH FROM ls.available_until)
+    ORDER BY month
+  `);
+
+  const byMonth = new Map(
+    result.map((row) => [
+      row.month,
+      {
+        month: row.month,
+        avgClosePoints: Math.round(Number(row.avg_close_points)),
+        closeCount: row.close_count,
+      },
+    ]),
+  );
+
+  return SEASON_MONTHS.map((month) =>
+    byMonth.get(month) ?? {
+      month,
+      avgClosePoints: null,
+      closeCount: 0,
+    },
+  );
+}
+
 export async function getAverageClosingPointsByHood(
   hoodNames: string[],
 ): Promise<AptTypeClosingStats[]> {
