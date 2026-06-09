@@ -11,6 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { CampusMarker } from '@/components/campus-marker';
+import { CAMPUSES } from '@/lib/campuses';
 import { HOODS, type Hood } from '@/lib/hoods';
 
 const HOODS_GEOJSON = {
@@ -25,13 +27,17 @@ const HOODS_GEOJSON = {
   })),
 };
 
-function fitMapToHoods(map: mapboxgl.Map) {
-  if (HOODS.length === 0) return;
-
+function fitMapToPoints(map: mapboxgl.Map) {
   const bounds = new mapboxgl.LngLatBounds();
+
   for (const hood of HOODS) {
     bounds.extend([hood.lng, hood.lat]);
   }
+  for (const campus of CAMPUSES) {
+    bounds.extend([campus.lng, campus.lat]);
+  }
+
+  if (bounds.isEmpty()) return;
 
   map.fitBounds(bounds, { padding: 72, maxZoom: 12, duration: 0 });
 }
@@ -40,6 +46,7 @@ export function HoodsMap() {
   const mapRef = useRef<MapRef>(null);
   const [selected, setSelected] = useState<Hood | null>(null);
   const [cursor, setCursor] = useState<string>('grab');
+  const [zoom, setZoom] = useState(10);
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   const selectedGeojson = useMemo(() => {
@@ -63,7 +70,8 @@ export function HoodsMap() {
   const handleLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (map) {
-      fitMapToHoods(map);
+      fitMapToPoints(map);
+      setZoom(map.getZoom());
     }
   }, []);
 
@@ -124,6 +132,7 @@ export function HoodsMap() {
           interactiveLayerIds={['hoods-circles', 'hoods-glow']}
           cursor={cursor}
           onLoad={handleLoad}
+          onMove={(event) => setZoom(event.viewState.zoom)}
           onMouseMove={handleMouseMove}
           onClick={handleClick}
         >
@@ -226,6 +235,10 @@ export function HoodsMap() {
               />
             </Source>
           ) : null}
+
+          {CAMPUSES.map((campus) => (
+            <CampusMarker key={campus.id} campus={campus} zoom={zoom} />
+          ))}
         </Map>
       </div>
 
