@@ -1,9 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import Map, { Layer, Popup, Source } from 'react-map-gl/mapbox';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import mapboxgl from 'mapbox-gl';
+import Map, { Layer, Source, type MapRef } from 'react-map-gl/mapbox';
 import type { MapMouseEvent } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { HOODS, type Hood } from '@/lib/hoods';
 
 const HOODS_GEOJSON = {
@@ -18,9 +25,47 @@ const HOODS_GEOJSON = {
   })),
 };
 
+function fitMapToHoods(map: mapboxgl.Map) {
+  if (HOODS.length === 0) return;
+
+  const bounds = new mapboxgl.LngLatBounds();
+  for (const hood of HOODS) {
+    bounds.extend([hood.lng, hood.lat]);
+  }
+
+  map.fitBounds(bounds, { padding: 72, maxZoom: 12, duration: 0 });
+}
+
 export function HoodsMap() {
+  const mapRef = useRef<MapRef>(null);
   const [selected, setSelected] = useState<Hood | null>(null);
+  const [cursor, setCursor] = useState<string>('grab');
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+  const selectedGeojson = useMemo(() => {
+    if (!selected) return null;
+
+    return {
+      type: 'FeatureCollection' as const,
+      features: [
+        {
+          type: 'Feature' as const,
+          properties: {},
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [selected.lng, selected.lat] as [number, number],
+          },
+        },
+      ],
+    };
+  }, [selected]);
+
+  const handleLoad = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (map) {
+      fitMapToHoods(map);
+    }
+  }, []);
 
   if (!token) {
     return (
@@ -33,6 +78,10 @@ export function HoodsMap() {
         to show the map.
       </div>
     );
+  }
+
+  function handleMouseMove(event: MapMouseEvent) {
+    setCursor(event.features?.length ? 'pointer' : 'grab');
   }
 
   function handleClick(event: MapMouseEvent) {
@@ -53,65 +102,150 @@ export function HoodsMap() {
     }
   }
 
-  return (
-    <div className="h-[70vh] w-full overflow-hidden rounded-lg border">
-      <Map
-        mapboxAccessToken={token}
-        initialViewState={{
-          longitude: 18.06,
-          latitude: 59.34,
-          zoom: 10.5,
-        }}
-        mapStyle="mapbox://styles/mapbox/light-v11"
-        style={{ width: '100%', height: '100%' }}
-        interactiveLayerIds={['hoods-circles']}
-        onClick={handleClick}
-      >
-        <Source id="hoods" type="geojson" data={HOODS_GEOJSON}>
-          <Layer
-            id="hoods-circles"
-            type="circle"
-            paint={{
-              'circle-radius': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                9,
-                8,
-                12,
-                14,
-                14,
-                18,
-              ],
-              'circle-color': '#2563eb',
-              'circle-opacity': 0.8,
-              'circle-stroke-width': 2,
-              'circle-stroke-color': '#ffffff',
-            }}
-          />
-        </Source>
+  function handleOpenChange(open: boolean) {
+    if (!open) {
+      setSelected(null);
+    }
+  }
 
-        {selected ? (
-          <Popup
-            longitude={selected.lng}
-            latitude={selected.lat}
-            onClose={() => setSelected(null)}
-            closeOnClick={false}
-            anchor="bottom"
-            offset={16}
-          >
-            <div className="w-56">
+  return (
+    <>
+      <div className="h-[70vh] w-full overflow-hidden rounded-lg border">
+        <Map
+          ref={mapRef}
+          mapboxAccessToken={token}
+          initialViewState={{
+            longitude: 18.06,
+            latitude: 59.34,
+            zoom: 10,
+          }}
+          mapStyle="mapbox://styles/mapbox/light-v11"
+          style={{ width: '100%', height: '100%' }}
+          interactiveLayerIds={['hoods-circles', 'hoods-glow']}
+          cursor={cursor}
+          onLoad={handleLoad}
+          onMouseMove={handleMouseMove}
+          onClick={handleClick}
+        >
+          <Source id="hoods" type="geojson" data={HOODS_GEOJSON}>
+            <Layer
+              id="hoods-glow"
+              type="circle"
+              paint={{
+                'circle-radius': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  8,
+                  14,
+                  10,
+                  20,
+                  12,
+                  26,
+                  14,
+                  32,
+                ],
+                'circle-color': '#94a3b8',
+                'circle-opacity': 0.22,
+                'circle-blur': 0.85,
+              }}
+            />
+            <Layer
+              id="hoods-circles"
+              type="circle"
+              paint={{
+                'circle-radius': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  8,
+                  6,
+                  10,
+                  10,
+                  12,
+                  14,
+                  14,
+                  18,
+                ],
+                'circle-color': '#334155',
+                'circle-opacity': 0.92,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff',
+                'circle-stroke-opacity': 0.95,
+              }}
+            />
+          </Source>
+
+          {selectedGeojson ? (
+            <Source id="hood-selected" type="geojson" data={selectedGeojson}>
+              <Layer
+                id="hood-selected-glow"
+                type="circle"
+                paint={{
+                  'circle-radius': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    8,
+                    18,
+                    10,
+                    26,
+                    12,
+                    34,
+                    14,
+                    42,
+                  ],
+                  'circle-color': '#1e293b',
+                  'circle-opacity': 0.35,
+                  'circle-blur': 0.85,
+                }}
+              />
+              <Layer
+                id="hood-selected-circle"
+                type="circle"
+                paint={{
+                  'circle-radius': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    8,
+                    8,
+                    10,
+                    12,
+                    12,
+                    16,
+                    14,
+                    20,
+                  ],
+                  'circle-color': '#0f172a',
+                  'circle-opacity': 0.95,
+                  'circle-stroke-width': 3,
+                  'circle-stroke-color': '#ffffff',
+                  'circle-stroke-opacity': 1,
+                }}
+              />
+            </Source>
+          ) : null}
+        </Map>
+      </div>
+
+      <Dialog open={selected !== null} onOpenChange={handleOpenChange}>
+        <DialogContent className="overflow-hidden p-0 sm:max-w-md">
+          {selected ? (
+            <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={selected.imageUrl}
                 alt={selected.name}
-                className="mb-2 h-32 w-full rounded object-cover"
+                className="aspect-[16/10] w-full object-cover"
               />
-              <p className="font-semibold">{selected.name}</p>
-            </div>
-          </Popup>
-        ) : null}
-      </Map>
-    </div>
+              <DialogHeader className="p-4 pt-3">
+                <DialogTitle>{selected.name}</DialogTitle>
+              </DialogHeader>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
