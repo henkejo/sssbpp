@@ -21,7 +21,7 @@ export const HOODS: Hood[] = [
     lat: 59.3697209,
     lng: 18.0627876,
     imageUrl:
-      'https://www.sssb.se/wp-content/uploads/2022/10/20220613_7327_webb.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Lappk%C3%A4rrsberget01_4458.jpg/960px-Lappk%C3%A4rrsberget01_4458.jpg.webp',
     aliases: ['Campus Lappis', 'Lappis'],
   },
   {
